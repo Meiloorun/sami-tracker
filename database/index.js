@@ -1,17 +1,17 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
-const { db } = require("./db");
-const { feedings } = require("./schema");
+const { db } = require("./db.ts");
+const { feedings } = require("./src/db/schema.ts");
 const { eq } = require("drizzle-orm");
-
-require("dotenv").config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 app.get("/feedings", async (req, res) => {
-    const result = await db.select().from(feedings).orderBy(feedings.date_time)
+    const result = await db.select().from(feedings)
     res.json(result);
 });
 
@@ -21,6 +21,7 @@ app.post("/feedings", async (req, res) => {
         .insert(feedings)
         .values({ date_time: new Date(date_time), notes })
         .returning();
+    console.log("Sami was just fed")
     res.json(newFeeding);
 });
 

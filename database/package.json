@@ -16,5 +16,9 @@
     "express": "^5.1.0",
     "pg": "^8.16.3",
     "pg-pool": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "drizzle-kit": "^0.31.4"
   }
 }

@@ -1,4 +1,4 @@
-const BASE_URL = "http://192.168.1.67/3000";
+const BASE_URL = "http://192.168.1.67:3000/";
 
 export async function addFeeding(notes?: string) {
   const res = await fetch(`${BASE_URL}/feedings`, {
