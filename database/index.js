@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const { db } = require("./db.ts");
 const { feedings, users, user_devices } = require("./src/db/schema.ts");
-const { eq, desc } = require("drizzle-orm");
+const { eq, desc, and, gte, lt } = require("drizzle-orm");
 const crypto = require("crypto");
 
 const app = express();
@@ -22,6 +22,27 @@ function generateDeviceToken() {
 function hashDeviceToken(token) {
     const pepper = process.env.TOKEN_PEPPER || "";
     return crypto.createHash("sha256").update(`${token}.${pepper}`).digest("hex");
+}
+
+function parseDayKey(dayKey) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dayKey || ""));
+  if (!m) return null;
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+
+  const start = new Date(year, month - 1, day, 0, 0, 0, 0);
+  if (
+    start.getFullYear() !== year ||
+    start.getMonth() !== month - 1 ||
+    start.getDate() !== day
+  ) return null;
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+
+  return { start, end };
 }
 
 app.get("/feedings", async (req, res) => {
@@ -79,6 +100,33 @@ app.get("/feedings/recent", async (req, res) => {
   }
 });
 
+app.get("/feedings/day", async (req, res) => {
+  try {
+    const range = parseDayKey(req.query.date);
+    if (!range) {
+      return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+    }
+
+    const rows = await db
+      .select({
+        id: feedings.id,
+        date_time: feedings.date_time,
+        feed_description: feedings.feed_description,
+        notes: feedings.notes,
+        user_id: feedings.user_id,
+        user_name: users.name,
+      })
+      .from(feedings)
+      .innerJoin(users, eq(feedings.user_id, users.id))
+      .where(and(gte(feedings.date_time, range.start), lt(feedings.date_time, range.end)))
+      .orderBy(desc(feedings.date_time));
+
+    return res.json(rows);
+  } catch (error) {
+    console.error("Error fetching daily feedings:", error);
+    return res.status(500).json({ error: "Failed to fetch daily feedings" });
+  }
+});
 
 app.post("/feedings", async (req, res) => {
     try {

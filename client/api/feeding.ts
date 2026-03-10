@@ -10,7 +10,7 @@ export type FeedingRecord = {
   user_name?: string;
 };
 
-export type LatestFeeding = FeedingRecord & { user_name: string };
+export type FeedingDisplay = FeedingRecord & { user_name: string };
 
 export async function addFeeding(feed_description: string, date_time: Date, notes?: string): Promise<FeedingRecord> {
   const session = await getSession();
@@ -42,16 +42,22 @@ export async function getFeedings(): Promise<FeedingRecord[]> {
   return res.json();
 }
 
-export async function getLatestFeeding(): Promise<LatestFeeding | null> {
+export async function getLatestFeeding(): Promise<FeedingDisplay | null> {
   const res = await fetch(`${BASE_URL}/feedings/latest`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to load latest feeding");
   return res.json();
 }
 
-export async function getRecentFeedings(limit = 3): Promise<LatestFeeding[]> {
+export async function getRecentFeedings(limit = 3): Promise<FeedingDisplay[]> {
   const res = await fetch(`${BASE_URL}/feedings/recent?limit=${limit}`);
   if (!res.ok) throw new Error("Failed to load recent feedings");
+  return res.json();
+}
+
+export async function getFeedingsByDay(date: string): Promise<FeedingDisplay[]> {
+  const res = await fetch(`${BASE_URL}/feedings/day?date=${encodeURIComponent(date)}`);
+  if (!res.ok) throw new Error("Failed to load day feedings");
   return res.json();
 }
 

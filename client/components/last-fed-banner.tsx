@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import type { LatestFeeding } from "@/api/feeding";
+import type { FeedingDisplay } from "@/api/feeding";
 
 type Props = {
-  latest: LatestFeeding | null;
+  latest: FeedingDisplay | null;
   loading?: boolean;
 };
 

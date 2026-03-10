@@ -7,7 +7,7 @@ import {
   getLatestFeeding,
   getRecentFeedings,
   type FeedingRecord,
-  type LatestFeeding,
+  type FeedingDisplay,
 } from "@/api/feeding";
 
 type SnackbarState = {
@@ -32,8 +32,8 @@ function formatRecentDate(dateTime: string) {
 }
 
 export default function HomeScreen() {
-  const [latest, setLatest] = useState<LatestFeeding | null>(null);
-  const [recent, setRecent] = useState<LatestFeeding[]>([]);
+  const [latest, setLatest] = useState<FeedingDisplay | null>(null);
+  const [recent, setRecent] = useState<FeedingDisplay[]>([]);
   const [latestLoading, setLatestLoading] = useState(true);
   const [recentLoading, setRecentLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
