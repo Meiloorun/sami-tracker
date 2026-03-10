@@ -53,6 +53,32 @@ app.get("/feedings/latest", async (req, res) => {
   }
 });
 
+app.get("/feedings/recent", async (req, res) => {
+  try {
+    const requestedLimit = Number(req.query.limit);
+    const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(10, requestedLimit)) : 3;
+
+    const recent = await db
+      .select({
+        id: feedings.id,
+        date_time: feedings.date_time,
+        feed_description: feedings.feed_description,
+        notes: feedings.notes,
+        user_id: feedings.user_id,
+        user_name: users.name,
+      })
+      .from(feedings)
+      .innerJoin(users, eq(feedings.user_id, users.id))
+      .orderBy(desc(feedings.date_time))
+      .limit(limit);
+
+    return res.json(recent);
+  } catch (error) {
+    console.error("Error fetching recent feedings:", error);
+    return res.status(500).json({ error: "Failed to fetch recent feedings" });
+  }
+});
+
 
 app.post("/feedings", async (req, res) => {
     try {
@@ -85,6 +111,25 @@ app.post("/feedings", async (req, res) => {
         console.error("Error adding feeding:", error);
         res.status(500).json({ error: "Failed to add feeding" });
     }
+});
+
+app.delete("/feedings/:id", async (req, res) => {
+  try {
+    const feedingId = Number(req.params.id);
+    if (!Number.isInteger(feedingId) || feedingId <= 0) {
+      return res.status(400).json({ error: "Valid feeding id is required" });
+    }
+
+    const [deleted] = await db.delete(feedings).where(eq(feedings.id, feedingId)).returning();
+    if (!deleted) {
+      return res.status(404).json({ error: "Feeding not found" });
+    }
+
+    return res.json(deleted);
+  } catch (error) {
+    console.error("Error deleting feeding:", error);
+    return res.status(500).json({ error: "Failed to delete feeding" });
+  }
 });
 
 app.post("/identify", async (req, res) => {
