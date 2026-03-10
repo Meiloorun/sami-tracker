@@ -10,11 +10,13 @@ function formatSince(dateTime: string, userName: string, nowMs: number) {
     return "Sami was last fed recently.";
   }
 
-  const diff = Math.max(0, Math.floor((nowMs - fedMs) / 1000));
+  const signedDiff = Math.floor((nowMs - fedMs) / 1000);
+  const diff = Math.abs(signedDiff);
   const hours = Math.floor(diff / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
   const seconds = diff % 60;
-  return `Sami was last fed ${hours} hour${hours === 1 ? "" : "s"}, ${minutes} minute${minutes === 1 ? "" : "s"}, ${seconds} second${seconds === 1 ? "" : "s"} ago by ${userName}`;
+  const suffix = signedDiff >= 0 ? "ago" : "from now";
+  return `Sami was last fed ${hours} hour${hours === 1 ? "" : "s"}, ${minutes} minute${minutes === 1 ? "" : "s"}, ${seconds} second${seconds === 1 ? "" : "s"} ${suffix} by ${userName}`;
 }
 
 export default function LastFedBanner({ latest }: Props) {
