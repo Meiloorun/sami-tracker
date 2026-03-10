@@ -11,6 +11,7 @@ export const users = pgTable("users", {
 export const feedings = pgTable("feedings", {
     id: serial("id").primaryKey(),
     date_time: timestamp("date_time").notNull(),
+    feed_description: text("feed_description").notNull(),
     notes: text("notes"),
     user_id: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });

@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { db } = require("./db.ts");
-const { feedings } = require("./src/db/schema.ts");
+const { feedings, users, user_devices } = require("./src/db/schema.ts");
 const { eq } = require("drizzle-orm");
 const crypto = require("crypto");
 
@@ -41,12 +41,13 @@ app.post("/feedings", async (req, res) => {
 
 app.post("/identify", async (req, res) => {
     try {    
-        const { email } = normaliseEmail(req.body?.email);
+        const email = normaliseEmail(req.body?.email);
+        console.log("Attempting to identify user with email:", email);
         if (!email) {
             return res.status(400).json({ error: "Email is required" });
         }
 
-        const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        const [ user ] = await db.select().from(users).where(eq(users.email, email)).limit(1);
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
@@ -57,9 +58,11 @@ app.post("/identify", async (req, res) => {
         await db.insert(user_devices).values({ 
                 user_id: user.id, 
                 token_hash: hashedToken, 
-                lastseen: new Date()
+                last_seen: new Date()
         });
 
+        console.log(`User ${user.email} identified successfully, device token generated.`);
+        
         return res.json({ 
             token,
             user: {id: user.id, email: user.email, name: user.name}
