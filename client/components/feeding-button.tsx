@@ -14,7 +14,7 @@ import { addFeeding } from "@/api/feeding";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const toTimeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const toTimeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 
 type Props = { onAdded: () => void | Promise<void> };
 
@@ -61,7 +61,7 @@ export default function FeedingButton({ onAdded }: Props) {
     if (!date) return;
 
     const next = new Date(selectedDateTime);
-    next.setHours(date.getHours(), date.getMinutes(), 0, 0);
+    next.setHours(date.getHours(), date.getMinutes(), next.getSeconds(), 0);
     setSelectedDateTime(next);
   };
 
@@ -72,7 +72,8 @@ export default function FeedingButton({ onAdded }: Props) {
       return;
     }
 
-    const dt = isWeb ? new Date(`${dateValue}T${timeValue}:00`) : selectedDateTime;
+    const webTime = timeValue.length === 5 ? `${timeValue}:00` : timeValue;
+    const dt = isWeb ? new Date(`${dateValue}T${webTime}`) : selectedDateTime;
     if (Number.isNaN(dt.getTime())) {
       setError("Please enter a valid date and time.");
       return;
@@ -140,6 +141,7 @@ export default function FeedingButton({ onAdded }: Props) {
                     style={styles.webInput as any}
                     value={timeValue}
                     onChange={(event) => setTimeValue(event.currentTarget.value)}
+                    step={1}
                     disabled={saving}
                     aria-label="Feeding time"
                   />
