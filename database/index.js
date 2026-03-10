@@ -29,14 +29,42 @@ app.get("/feedings", async (req, res) => {
     res.json(result);
 });
 
+app.get("/feedings/latest", async (req, res) => {
+    const result = await db.select().from(feedings).orderBy(feedings.date_time).limit(1);
+    res.json(result);
+});
+
 app.post("/feedings", async (req, res) => {
-    const {date_time, notes, user_id} = req.body;
-    const [newFeeding] = await db
-        .insert(feedings)
-        .values({ date_time: new Date(date_time), notes, user_id })
-        .returning();
-    console.log("Sami was just fed")
-    res.json(newFeeding);
+    try {
+        const { date_time, notes, user_id } = req.body;
+        const feedDescription = req.body.feed_description ?? req.body.feedDescription;
+
+        if (!feedDescription || !String(feedDescription).trim()) {
+            return res.status(400).json({ error: "feed_description is required" });
+        }
+        if (!date_time || Number.isNaN(new Date(date_time).getTime())) {
+            return res.status(400).json({ error: "Valid date_time is required" });
+        }
+        if (!user_id) {
+            return res.status(400).json({ error: "user_id is required" });
+        }
+
+        const [newFeeding] = await db
+            .insert(feedings)
+            .values({
+                date_time: new Date(date_time),
+                feed_description: String(feedDescription).trim(),
+                notes: notes ?? null,
+                user_id: Number(user_id),
+            })
+            .returning();
+
+        console.log("Sami was just fed");
+        res.json(newFeeding);
+    } catch (error) {
+        console.error("Error adding feeding:", error);
+        res.status(500).json({ error: "Failed to add feeding" });
+    }
 });
 
 app.post("/identify", async (req, res) => {
@@ -62,7 +90,7 @@ app.post("/identify", async (req, res) => {
         });
 
         console.log(`User ${user.email} identified successfully, device token generated.`);
-        
+
         return res.json({ 
             token,
             user: {id: user.id, email: user.email, name: user.name}
