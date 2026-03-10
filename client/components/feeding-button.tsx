@@ -16,7 +16,9 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const toTimeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
-export default function FeedingButton() {
+type Props = { onAdded: () => void | Promise<void> };
+
+export default function FeedingButton({ onAdded }: Props) {
   const isWeb = Platform.OS === "web";
   const [open, setOpen] = useState(false);
   const [feedDescription, setFeedDescription] = useState("");
@@ -80,6 +82,7 @@ export default function FeedingButton() {
     setError(null);
     try {
       await addFeeding(description, dt, notes.trim() || undefined);
+      await onAdded?.();
       setOpen(false);
     } catch {
       setError("Could not save feeding. Please try again.");

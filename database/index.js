@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const { db } = require("./db.ts");
 const { feedings, users, user_devices } = require("./src/db/schema.ts");
-const { eq } = require("drizzle-orm");
+const { eq, desc } = require("drizzle-orm");
 const crypto = require("crypto");
 
 const app = express();
@@ -30,9 +30,29 @@ app.get("/feedings", async (req, res) => {
 });
 
 app.get("/feedings/latest", async (req, res) => {
-    const result = await db.select().from(feedings).orderBy(feedings.date_time).limit(1);
-    res.json(result);
+  try {
+    const [latest] = await db
+      .select({
+        id: feedings.id,
+        date_time: feedings.date_time,
+        feed_description: feedings.feed_description,
+        notes: feedings.notes,
+        user_id: feedings.user_id,
+        user_name: users.name,
+      })
+      .from(feedings)
+      .innerJoin(users, eq(feedings.user_id, users.id))
+      .orderBy(desc(feedings.date_time))
+      .limit(1);
+
+    if (!latest) return res.status(404).json({ error: "No feedings yet" });
+    return res.json(latest);
+  } catch (error) {
+    console.error("Error fetching latest feeding:", error);
+    return res.status(500).json({ error: "Failed to fetch latest feeding" });
+  }
 });
+
 
 app.post("/feedings", async (req, res) => {
     try {
