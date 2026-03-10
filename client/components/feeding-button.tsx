@@ -1,22 +1,32 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { addFeeding } from "@/api/feeding";
+import { addFeeding, type FeedingRecord } from "@/api/feeding";
+
+const NOTES_LIMIT = 220;
+const QUICK_ACTIONS = [
+  { label: "Half pack", value: "Half pack wet food" },
+  { label: "Chicken Bowl", value: "Bowl of Chicken" },
+  { label: "Full pack", value: "Full pack wet food" },
+  { label: "Dry food", value: "Dry food refill" },
+];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const toTimeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 
-type Props = { onAdded: () => void | Promise<void> };
+type Props = {
+  onAdded?: (feeding: FeedingRecord) => void | Promise<void>;
+};
 
 export default function FeedingButton({ onAdded }: Props) {
   const isWeb = Platform.OS === "web";
@@ -31,12 +41,14 @@ export default function FeedingButton({ onAdded }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const openForm = () => {
+  const notesCount = useMemo(() => notes.length, [notes]);
+
+  const openForm = (prefillDescription?: string) => {
     const now = new Date();
     setSelectedDateTime(now);
     setDateValue(toDateInput(now));
     setTimeValue(toTimeInput(now));
-    setFeedDescription("");
+    setFeedDescription(prefillDescription ?? "");
     setNotes("");
     setError(null);
     setOpen(true);
@@ -61,7 +73,7 @@ export default function FeedingButton({ onAdded }: Props) {
     if (!date) return;
 
     const next = new Date(selectedDateTime);
-    next.setHours(date.getHours(), date.getMinutes(), next.getSeconds(), 0);
+    next.setHours(date.getHours(), date.getMinutes(), date.getSeconds(), 0);
     setSelectedDateTime(next);
   };
 
@@ -73,8 +85,8 @@ export default function FeedingButton({ onAdded }: Props) {
     }
 
     const webTime = timeValue.length === 5 ? `${timeValue}:00` : timeValue;
-    const dt = isWeb ? new Date(`${dateValue}T${webTime}`) : selectedDateTime;
-    if (Number.isNaN(dt.getTime())) {
+    const feedingDate = isWeb ? new Date(`${dateValue}T${webTime}`) : selectedDateTime;
+    if (Number.isNaN(feedingDate.getTime())) {
       setError("Please enter a valid date and time.");
       return;
     }
@@ -82,8 +94,8 @@ export default function FeedingButton({ onAdded }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await addFeeding(description, dt, notes.trim() || undefined);
-      await onAdded?.();
+      const created = await addFeeding(description, feedingDate, notes.trim() || undefined);
+      await onAdded?.(created);
       setOpen(false);
     } catch {
       setError("Could not save feeding. Please try again.");
@@ -94,9 +106,29 @@ export default function FeedingButton({ onAdded }: Props) {
 
   return (
     <>
-      <TouchableOpacity style={styles.mainButton} onPress={openForm}>
-        <Text style={styles.mainButtonText}>I just fed Sami</Text>
-      </TouchableOpacity>
+      <View style={styles.quickActionRow}>
+        {QUICK_ACTIONS.map((action) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Quick log ${action.label}`}
+            key={action.label}
+            onPress={() => openForm(action.value)}
+            style={({ pressed }) => [styles.quickActionChip, pressed && styles.quickActionChipPressed]}
+          >
+            <Text style={styles.quickActionText}>{action.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Log Feeding"
+        onPress={() => openForm()}
+        style={({ pressed }) => [styles.mainButton, pressed && styles.mainButtonPressed]}
+      >
+        <Text style={styles.mainButtonTitle}>Log Feeding</Text>
+        <Text style={styles.mainButtonSubtitle}>I just fed Sami</Text>
+      </Pressable>
 
       <Modal transparent visible={open} animationType="fade" onRequestClose={closeForm}>
         <View style={styles.overlay}>
@@ -104,99 +136,129 @@ export default function FeedingButton({ onAdded }: Props) {
           <View style={styles.card}>
             <View style={styles.headerRow}>
               <Text style={styles.title}>Log Feeding</Text>
-              <Pressable onPress={closeForm}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close feeding form"
+                style={({ pressed }) => [styles.closeButton, pressed && styles.closeButtonPressed]}
+                onPress={closeForm}
+              >
                 <Text style={styles.closeText}>Close</Text>
               </Pressable>
             </View>
 
-            <View style={styles.row}>
-              <View style={styles.flex}>
-                <Text style={styles.label}>Date</Text>
-                {isWeb ? (
-                  <input
-                    type="date"
-                    style={styles.webInput as any}
-                    value={dateValue}
-                    onChange={(event) => setDateValue(event.currentTarget.value)}
-                    disabled={saving}
-                    aria-label="Feeding date"
-                  />
-                ) : (
-                  <Pressable
-                    style={styles.input}
-                    disabled={saving}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Text style={styles.pickerValue}>
-                      {selectedDateTime.toLocaleDateString()}
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-              <View style={styles.flex}>
-                <Text style={styles.label}>Time</Text>
-                {isWeb ? (
-                  <input
-                    type="time"
-                    style={styles.webInput as any}
-                    value={timeValue}
-                    onChange={(event) => setTimeValue(event.currentTarget.value)}
-                    step={1}
-                    disabled={saving}
-                    aria-label="Feeding time"
-                  />
-                ) : (
-                  <Pressable
-                    style={styles.input}
-                    disabled={saving}
-                    onPress={() => setShowTimePicker(true)}
-                  >
-                    <Text style={styles.pickerValue}>
-                      {selectedDateTime.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-            </View>
-
-            {!isWeb && showDatePicker && (
-              <DateTimePicker value={selectedDateTime} mode="date" onChange={onDateChange} />
-            )}
-            {!isWeb && showTimePicker && (
-              <DateTimePicker value={selectedDateTime} mode="time" onChange={onTimeChange} />
-            )}
-
-            <Text style={styles.label}>Feed description *</Text>
-            <TextInput
-              style={styles.input}
-              value={feedDescription}
-              onChangeText={setFeedDescription}
-              placeholder="e.g. Half pouch wet food"
-              editable={!saving}
-            />
-
-            <Text style={styles.label}>Notes (optional)</Text>
-            <TextInput
-              style={[styles.input, styles.notesInput]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Any extra details"
-              multiline
-              editable={!saving}
-            />
-
-            {!!error && <Text style={styles.error}>{error}</Text>}
-
-            <Pressable
-              style={[styles.submitButton, (!feedDescription.trim() || saving) && styles.disabled]}
-              disabled={!feedDescription.trim() || saving}
-              onPress={submit}
+            <ScrollView
+              contentContainerStyle={styles.formContent}
+              keyboardShouldPersistTaps="handled"
+              style={styles.formScroll}
             >
-              <Text style={styles.submitText}>{saving ? "Saving..." : "Add feed"}</Text>
-            </Pressable>
+              <View style={styles.row}>
+                <View style={styles.flex}>
+                  <Text style={styles.label}>Date</Text>
+                  {isWeb ? (
+                    <input
+                      aria-label="Feeding date"
+                      disabled={saving}
+                      onChange={(event) => setDateValue(event.currentTarget.value)}
+                      style={{ ...(styles.webInput as any), boxSizing: "border-box" }}
+                      type="date"
+                      value={dateValue}
+                    />
+                  ) : (
+                    <Pressable
+                      accessibilityLabel="Select feeding date"
+                      accessibilityRole="button"
+                      disabled={saving}
+                      onPress={() => setShowDatePicker(true)}
+                      style={styles.input}
+                    >
+                      <Text style={styles.pickerValue}>{selectedDateTime.toLocaleDateString()}</Text>
+                    </Pressable>
+                  )}
+                </View>
+
+                <View style={styles.flex}>
+                  <Text style={styles.label}>Time</Text>
+                  {isWeb ? (
+                    <input
+                      aria-label="Feeding time"
+                      disabled={saving}
+                      onChange={(event) => setTimeValue(event.currentTarget.value)}
+                      step={1}
+                      style={{ ...(styles.webInput as any), boxSizing: "border-box" }}
+                      type="time"
+                      value={timeValue}
+                    />
+                  ) : (
+                    <Pressable
+                      accessibilityLabel="Select feeding time"
+                      accessibilityRole="button"
+                      disabled={saving}
+                      onPress={() => setShowTimePicker(true)}
+                      style={styles.input}
+                    >
+                      <Text style={styles.pickerValue}>
+                        {selectedDateTime.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+
+              {!isWeb && showDatePicker && (
+                <DateTimePicker mode="date" onChange={onDateChange} value={selectedDateTime} />
+              )}
+              {!isWeb && showTimePicker && (
+                <DateTimePicker mode="time" onChange={onTimeChange} value={selectedDateTime} />
+              )}
+
+              <Text style={styles.label}>Feed description *</Text>
+              <TextInput
+                accessibilityLabel="Feed description"
+                editable={!saving}
+                onChangeText={setFeedDescription}
+                placeholder="e.g. Half pack wet food"
+                style={styles.input}
+                value={feedDescription}
+              />
+
+              <View style={styles.notesHeader}>
+                <Text style={styles.label}>Notes (optional)</Text>
+                <Text style={styles.notesCounter}>
+                  {notesCount}/{NOTES_LIMIT}
+                </Text>
+              </View>
+              <TextInput
+                accessibilityLabel="Feeding notes"
+                editable={!saving}
+                maxLength={NOTES_LIMIT}
+                multiline
+                onChangeText={setNotes}
+                placeholder="Any extra details"
+                style={[styles.input, styles.notesInput]}
+                value={notes}
+              />
+            </ScrollView>
+
+            <View style={styles.footer}>
+              {!!error && <Text style={styles.error}>{error}</Text>}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add feeding"
+                disabled={!feedDescription.trim() || saving}
+                onPress={submit}
+                style={({ pressed }) => [
+                  styles.submitButton,
+                  (!feedDescription.trim() || saving) && styles.disabled,
+                  pressed && !saving && styles.submitPressed,
+                ]}
+              >
+                <Text style={styles.submitText}>{saving ? "Saving..." : "Add feed"}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -205,66 +267,205 @@ export default function FeedingButton({ onAdded }: Props) {
 }
 
 const styles = StyleSheet.create({
-  mainButton: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "#1E90FF",
+  quickActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
     justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 6,
-  },
-  mainButtonText: { color: "#fff", fontWeight: "700", textAlign: "center", fontSize: 18 },
-  overlay: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
-  card: {
+    marginBottom: 14,
     width: "100%",
-    maxWidth: 460,
-    borderRadius: 14,
-    backgroundColor: "#fff",
+  },
+  quickActionChip: {
+    alignItems: "center",
+    backgroundColor: "#1e293b",
+    borderColor: "#334155",
+    borderWidth: 1,
+    borderRadius: 999,
+    justifyContent: "center",
+    minHeight: 44,
+    minWidth: 96,
+    paddingHorizontal: 14,
+  },
+  quickActionChipPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  quickActionText: {
+    color: "#e2e8f0",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  mainButton: {
+    alignItems: "center",
+    backgroundColor: "#0369a1",
+    borderRadius: 22,
+    justifyContent: "center",
+    minHeight: 168,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    shadowColor: "#0c4a6e",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    width: "100%",
+    elevation: 8,
+  },
+  mainButtonPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
+  mainButtonTitle: {
+    color: "#f8fafc",
+    fontSize: 31,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  mainButtonSubtitle: {
+    color: "#e0f2fe",
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 6,
+  },
+  overlay: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
     padding: 16,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(2,6,23,0.5)",
+  },
+  card: {
+    backgroundColor: "#0f172a",
+    borderColor: "#334155",
+    borderWidth: 1,
+    borderRadius: 18,
+    maxHeight: "88%",
+    maxWidth: 520,
+    overflow: "hidden",
+    width: "100%",
+  },
+  headerRow: {
+    alignItems: "center",
+    borderBottomColor: "#334155",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  title: {
+    color: "#f8fafc",
+    fontSize: 21,
+    fontWeight: "800",
+  },
+  closeButton: {
+    alignItems: "center",
+    borderRadius: 10,
+    justifyContent: "center",
+    minHeight: 44,
+    minWidth: 74,
+  },
+  closeButtonPressed: {
+    backgroundColor: "#1e293b",
+  },
+  closeText: {
+    color: "#bae6fd",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  formScroll: {
+    maxHeight: 420,
+  },
+  formContent: {
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  row: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 20, fontWeight: "700" },
-  closeText: { color: "#1E90FF", fontWeight: "600" },
-  label: { fontSize: 13, color: "#444" },
+  flex: {
+    flex: 1,
+    minWidth: 180,
+  },
+  label: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
   input: {
+    backgroundColor: "#0b1220",
+    borderColor: "#475569",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#d4d4d4",
-    borderRadius: 10,
-    paddingHorizontal: 10,
+    color: "#f8fafc",
+    fontSize: 16,
+    minHeight: 44,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: "#fff",
   },
   webInput: {
+    backgroundColor: "#0b1220",
+    borderColor: "#475569",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#d4d4d4",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
+    color: "#f8fafc",
     fontSize: 16,
+    minHeight: 44,
+    padding: 10,
     width: "100%",
   },
-  pickerValue: { color: "#111", fontSize: 16 },
-  notesInput: { minHeight: 72, textAlignVertical: "top" },
-  row: { flexDirection: "row", gap: 10 },
-  flex: { flex: 1 },
-  error: { color: "#b91c1c", fontSize: 13 },
-  submitButton: {
-    marginTop: 4,
-    backgroundColor: "#1E90FF",
-    height: 46,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+  pickerValue: {
+    color: "#f8fafc",
+    fontSize: 16,
   },
-  submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  disabled: { opacity: 0.5 },
+  notesHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  notesCounter: {
+    color: "#94a3b8",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  notesInput: {
+    minHeight: 92,
+    textAlignVertical: "top",
+  },
+  footer: {
+    borderTopColor: "#334155",
+    borderTopWidth: 1,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  error: {
+    color: "#fca5a5",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  submitButton: {
+    alignItems: "center",
+    backgroundColor: "#0369a1",
+    borderRadius: 12,
+    justifyContent: "center",
+    minHeight: 50,
+  },
+  submitPressed: {
+    opacity: 0.92,
+  },
+  submitText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  disabled: {
+    opacity: 0.45,
+  },
 });

@@ -15,11 +15,11 @@ type Tone = {
 };
 
 const tones: Record<"fresh" | "stale" | "urgent" | "future" | "neutral", Tone> = {
-  fresh: { card: "#ecfdf5", border: "#86efac", text: "#14532d", subtle: "#166534" },
-  stale: { card: "#fffbeb", border: "#fcd34d", text: "#78350f", subtle: "#92400e" },
-  urgent: { card: "#fef2f2", border: "#fca5a5", text: "#7f1d1d", subtle: "#991b1b" },
-  future: { card: "#eff6ff", border: "#93c5fd", text: "#1e3a8a", subtle: "#1d4ed8" },
-  neutral: { card: "#f8fafc", border: "#cbd5e1", text: "#0f172a", subtle: "#334155" },
+  fresh: { card: "#052e1a", border: "#166534", text: "#86efac", subtle: "#4ade80" },
+  stale: { card: "#422006", border: "#b45309", text: "#fcd34d", subtle: "#fbbf24" },
+  urgent: { card: "#450a0a", border: "#b91c1c", text: "#fca5a5", subtle: "#fecaca" },
+  future: { card: "#172554", border: "#1d4ed8", text: "#bfdbfe", subtle: "#93c5fd" },
+  neutral: { card: "#0f172a", border: "#334155", text: "#e2e8f0", subtle: "#94a3b8" },
 };
 
 function formatRelative(deltaSeconds: number) {
@@ -126,11 +126,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   loadingCard: {
-    backgroundColor: "#f1f5f9",
-    borderColor: "#cbd5e1",
+    backgroundColor: "#0f172a",
+    borderColor: "#334155",
   },
   skeletonHeadline: {
-    backgroundColor: "#cbd5e1",
+    backgroundColor: "#334155",
     borderRadius: 8,
     height: 34,
     marginBottom: 10,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   skeletonLine: {
-    backgroundColor: "#dbe4ef",
+    backgroundColor: "#1e293b",
     borderRadius: 8,
     height: 14,
     marginBottom: 8,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   skeletonLineShort: {
-    backgroundColor: "#dbe4ef",
+    backgroundColor: "#1e293b",
     borderRadius: 8,
     height: 14,
     width: "38%",
