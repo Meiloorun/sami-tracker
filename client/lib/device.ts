@@ -1,4 +1,3 @@
-// client/lib/device-name.ts
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 

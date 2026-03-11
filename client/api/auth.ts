@@ -1,5 +1,6 @@
 import { getClientDeviceName } from "@/lib/device";
 import { apiFetch } from "@/lib/api";
+import { getClientInstanceId } from "@/lib/session";
 import { Platform } from "react-native";
 
 export async function identify(email: string) {
@@ -10,6 +11,7 @@ export async function identify(email: string) {
             email,
             device_name: getClientDeviceName(),
             platform: Platform.OS,
+            client_instance_id: await getClientInstanceId(),
         }),
     }, { allowNetworkFallback: true });
 

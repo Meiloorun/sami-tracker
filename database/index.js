@@ -213,9 +213,13 @@ app.delete("/feedings/:id", async (req, res) => {
 app.post("/identify", async (req, res) => {
     try {    
         const email = normaliseEmail(req.body?.email);
+        const clientInstanceId = String(req.body?.client_instance_id || "").trim().substring(0, 255);
         console.log("Attempting to identify user with email:", email);
         if (!email) {
             return res.status(400).json({ error: "Email is required" });
+        }
+        if (!clientInstanceId) {
+            return res.status(400).json({ error: "client_instance_id is required" });
         }
 
         const [ user ] = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -229,13 +233,26 @@ app.post("/identify", async (req, res) => {
         const token = generateDeviceToken();
         const hashedToken = hashDeviceToken(token);
 
-        await db.insert(user_devices).values({ 
-                user_id: user.id, 
-                device_name: deviceName,
-                platform: platform,
-                token_hash: hashedToken, 
-                last_seen: new Date()
-        });
+        await db
+          .insert(user_devices)
+          .values({
+            user_id: user.id,
+            client_instance_id: clientInstanceId,
+            device_name: deviceName,
+            platform: platform,
+            token_hash: hashedToken,
+            last_seen: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: user_devices.client_instance_id,
+            set: {
+              user_id: user.id,
+              device_name: deviceName,
+              platform: platform,
+              token_hash: hashedToken,
+              last_seen: new Date(),
+            },
+          });
 
         console.log(`User ${user.email} identified successfully, device token generated.`);
 

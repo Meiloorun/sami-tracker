@@ -2,6 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 const SESSION_KEY = "sami_session_v1";
+const CLIENT_INSTANCE_ID_KEY = "sami_client_instance_id";
 
 export type Session = {
     token: string;
@@ -34,4 +35,22 @@ export async function clearSession() {
         return;
     }
     await SecureStore.deleteItemAsync(SESSION_KEY);
+}
+
+export async function getClientInstanceId(): Promise<string> {
+    if (Platform.OS === "web") {
+        let id = localStorage.getItem(CLIENT_INSTANCE_ID_KEY);
+        if (!id) {
+            id = crypto.randomUUID();
+            localStorage.setItem(CLIENT_INSTANCE_ID_KEY, id);
+        }
+        return id;
+    }
+
+    let id = await SecureStore.getItemAsync(CLIENT_INSTANCE_ID_KEY);
+    if (!id) {
+        id = crypto.randomUUID();
+        await SecureStore.setItemAsync(CLIENT_INSTANCE_ID_KEY, id);
+    }
+    return id;
 }
