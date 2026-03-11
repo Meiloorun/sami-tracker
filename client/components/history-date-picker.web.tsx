@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { AppThemes, Fonts } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 type Props = {
   value: Date;
@@ -62,6 +64,10 @@ export default function HistoryDatePicker({
   label = "Date",
   disabled = false,
 }: Props) {
+  const scheme = useColorScheme() === "light" ? "light" : "dark";
+  const theme = AppThemes[scheme];
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(value));
   const [layout, setLayout] = useState<PopoverLayout>({
@@ -109,12 +115,7 @@ export default function HistoryDatePicker({
       ? Math.max(VIEWPORT_PADDING, rect.top - maxHeight - POPOVER_GAP)
       : Math.min(viewportHeight - maxHeight - VIEWPORT_PADDING, rect.bottom + POPOVER_GAP);
 
-    setLayout({
-      left,
-      maxHeight,
-      top,
-      width,
-    });
+    setLayout({ left, maxHeight, top, width });
   }, []);
 
   useEffect(() => {
@@ -244,9 +245,9 @@ export default function HistoryDatePicker({
                       }}
                       style={{
                         ...styles.dayCell,
-                        backgroundColor: isSelected ? "#0369a1" : "#111827",
-                        borderColor: isSelected ? "#38bdf8" : "#334155",
-                        color: isSelected ? "#f8fafc" : "#e2e8f0",
+                        backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
+                        borderColor: isSelected ? theme.colors.ring : theme.colors.borderSoft,
+                        color: isSelected ? theme.colors.primaryText : theme.colors.textSoft,
                         cursor: isDisabled ? "not-allowed" : "pointer",
                         opacity: isInMonth ? 1 : 0.45,
                       }}
@@ -265,92 +266,101 @@ export default function HistoryDatePicker({
   );
 }
 
-const styles: Record<string, CSSProperties> = {
-  root: {
-    position: "relative",
-    width: "100%",
-  },
-  label: {
-    color: "#cbd5e1",
-    fontSize: 13,
-    fontWeight: 700,
-    marginBottom: 6,
-  },
-  trigger: {
-    backgroundColor: "#0b1220",
-    border: "1px solid #475569",
-    borderRadius: 12,
-    boxSizing: "border-box",
-    color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: 600,
-    minHeight: 44,
-    padding: "10px 12px",
-    textAlign: "left",
-    width: "100%",
-  },
-  backdrop: {
-    background: "transparent",
-    border: 0,
-    inset: 0,
-    margin: 0,
-    padding: 0,
-    position: "fixed",
-    zIndex: 9998,
-  },
-  popover: {
-    backgroundColor: "#0f172a",
-    border: "1px solid #334155",
-    borderRadius: 12,
-    boxShadow: "0 12px 28px rgba(2, 6, 23, 0.45)",
-    boxSizing: "border-box",
-    overflowY: "auto",
-    padding: 10,
-    position: "fixed",
-    zIndex: 9999,
-  },
-  monthRow: {
-    alignItems: "center",
-    display: "flex",
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  monthButton: {
-    backgroundColor: "#1e293b",
-    border: "1px solid #334155",
-    borderRadius: 8,
-    color: "#e2e8f0",
-    fontSize: 16,
-    fontWeight: 700,
-    minHeight: 34,
-    minWidth: 34,
-  },
-  monthText: {
-    color: "#f8fafc",
-    fontSize: 15,
-    fontWeight: 700,
-  },
-  grid: {
-    display: "grid",
-    gap: 4,
-    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  },
-  dayName: {
-    color: "#94a3b8",
-    fontSize: 11,
-    fontWeight: 700,
-    paddingBottom: 1,
-    textAlign: "center",
-  },
-  dayCell: {
-    backgroundColor: "#111827",
-    border: "1px solid #334155",
-    borderRadius: 8,
-    color: "#e2e8f0",
-    fontSize: 13,
-    fontWeight: 700,
-    minHeight: 32,
-  },
-};
+function createStyles(theme: (typeof AppThemes)["dark"]): Record<string, CSSProperties> {
+  const c = theme.colors;
+  return {
+    backdrop: {
+      background: "transparent",
+      border: 0,
+      inset: 0,
+      margin: 0,
+      padding: 0,
+      position: "fixed",
+      zIndex: 9998,
+    },
+    dayCell: {
+      backgroundColor: c.surface,
+      border: `1px solid ${c.borderSoft}`,
+      borderRadius: 8,
+      color: c.textSoft,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: 700,
+      minHeight: 32,
+    },
+    dayName: {
+      color: c.textMuted,
+      fontFamily: Fonts?.mono,
+      fontSize: 11,
+      fontWeight: 700,
+      paddingBottom: 1,
+      textAlign: "center",
+    },
+    grid: {
+      display: "grid",
+      gap: 4,
+      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+    },
+    label: {
+      color: c.textSoft,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: 700,
+      marginBottom: 6,
+    },
+    monthButton: {
+      backgroundColor: c.secondary,
+      border: `1px solid ${c.borderSoft}`,
+      borderRadius: 8,
+      color: c.textSoft,
+      fontFamily: Fonts?.rounded,
+      fontSize: 16,
+      fontWeight: 700,
+      minHeight: 34,
+      minWidth: 34,
+    },
+    monthRow: {
+      alignItems: "center",
+      display: "flex",
+      flexDirection: "row",
+      gap: 8,
+      justifyContent: "space-between",
+      marginBottom: 8,
+    },
+    monthText: {
+      color: c.text,
+      fontFamily: Fonts?.rounded,
+      fontSize: 15,
+      fontWeight: 700,
+    },
+    popover: {
+      backgroundColor: c.card,
+      border: `1px solid ${c.borderSoft}`,
+      borderRadius: 12,
+      boxShadow: `0 14px 32px ${c.overlay}`,
+      boxSizing: "border-box",
+      overflowY: "auto",
+      padding: 10,
+      position: "fixed",
+      zIndex: 9999,
+    },
+    root: {
+      position: "relative",
+      width: "100%",
+    },
+    trigger: {
+      backgroundColor: c.input,
+      border: `1px solid ${c.inputBorder}`,
+      borderRadius: 12,
+      boxSizing: "border-box",
+      color: c.text,
+      fontFamily: Fonts?.sans,
+      fontSize: 16,
+      fontWeight: 600,
+      minHeight: 44,
+      padding: "10px 12px",
+      textAlign: "left",
+      width: "100%",
+    },
+  };
+}

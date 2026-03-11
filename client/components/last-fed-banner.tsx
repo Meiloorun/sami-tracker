@@ -1,25 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { Fonts, type AppTheme } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import type { FeedingDisplay } from "@/api/feeding";
 
 type Props = {
   latest: FeedingDisplay | null;
   loading?: boolean;
-};
-
-type Tone = {
-  card: string;
-  border: string;
-  text: string;
-  subtle: string;
-};
-
-const tones: Record<"fresh" | "stale" | "urgent" | "future" | "neutral", Tone> = {
-  fresh: { card: "#052e1a", border: "#166534", text: "#86efac", subtle: "#4ade80" },
-  stale: { card: "#422006", border: "#b45309", text: "#fcd34d", subtle: "#fbbf24" },
-  urgent: { card: "#450a0a", border: "#b91c1c", text: "#fca5a5", subtle: "#fecaca" },
-  future: { card: "#172554", border: "#1d4ed8", text: "#bfdbfe", subtle: "#93c5fd" },
-  neutral: { card: "#0f172a", border: "#334155", text: "#e2e8f0", subtle: "#94a3b8" },
 };
 
 function formatRelative(deltaSeconds: number) {
@@ -42,15 +29,17 @@ function formatAbsolute(date: Date) {
   return `${dayPart} ${timePart}`;
 }
 
-function getTone(deltaSeconds: number): Tone {
-  if (deltaSeconds < 0) return tones.future;
+function getToneName(deltaSeconds: number): keyof AppTheme["status"] {
+  if (deltaSeconds < 0) return "future";
   const hours = deltaSeconds / 3600;
-  if (hours < 2) return tones.fresh;
-  if (hours < 5) return tones.stale;
-  return tones.urgent;
+  if (hours < 2) return "fresh";
+  if (hours < 5) return "stale";
+  return "urgent";
 }
 
 export default function LastFedBanner({ latest, loading = false }: Props) {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -62,13 +51,14 @@ export default function LastFedBanner({ latest, loading = false }: Props) {
     if (!latest) return null;
     const fedDate = new Date(latest.date_time);
     const deltaSeconds = Math.floor((nowMs - fedDate.getTime()) / 1000);
+    const tone = theme.status[getToneName(deltaSeconds)];
     return {
-      relative: formatRelative(deltaSeconds),
       absolute: formatAbsolute(fedDate),
+      relative: formatRelative(deltaSeconds),
+      tone,
       user: latest.user_name || "Unknown user",
-      tone: getTone(deltaSeconds),
     };
-  }, [latest, nowMs]);
+  }, [latest, nowMs, theme.status]);
 
   if (loading) {
     return (
@@ -81,10 +71,11 @@ export default function LastFedBanner({ latest, loading = false }: Props) {
   }
 
   if (!model) {
+    const neutral = theme.status.neutral;
     return (
-      <View style={[styles.card, { backgroundColor: tones.neutral.card, borderColor: tones.neutral.border }]}>
-        <Text style={[styles.relativeText, { color: tones.neutral.text }]}>No feedings logged yet</Text>
-        <Text style={[styles.metaText, { color: tones.neutral.subtle }]}>
+      <View style={[styles.card, { backgroundColor: neutral.card, borderColor: neutral.border }]}>
+        <Text style={[styles.relativeText, { color: neutral.text }]}>No feedings logged yet</Text>
+        <Text style={[styles.metaText, { color: neutral.subtle }]}>
           Add the first feeding to start tracking.
         </Text>
       </View>
@@ -100,56 +91,66 @@ export default function LastFedBanner({ latest, loading = false }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    width: "100%",
-  },
-  relativeText: {
-    fontSize: 30,
-    fontWeight: "800",
-    letterSpacing: -0.4,
-    lineHeight: 36,
-    textAlign: "center",
-  },
-  metaText: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 8,
-    textAlign: "center",
-  },
-  byLine: {
-    marginTop: 6,
-  },
-  loadingCard: {
-    backgroundColor: "#0f172a",
-    borderColor: "#334155",
-  },
-  skeletonHeadline: {
-    backgroundColor: "#334155",
-    borderRadius: 8,
-    height: 34,
-    marginBottom: 10,
-    width: "82%",
-    alignSelf: "center",
-  },
-  skeletonLine: {
-    backgroundColor: "#1e293b",
-    borderRadius: 8,
-    height: 14,
-    marginBottom: 8,
-    width: "56%",
-    alignSelf: "center",
-  },
-  skeletonLineShort: {
-    backgroundColor: "#1e293b",
-    borderRadius: 8,
-    height: 14,
-    width: "38%",
-    alignSelf: "center",
-  },
-});
+function createStyles(theme: AppTheme) {
+  const c = theme.colors;
+  return StyleSheet.create({
+    byLine: {
+      marginTop: 6,
+    },
+    card: {
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      marginBottom: 18,
+      paddingHorizontal: 18,
+      paddingVertical: 16,
+      shadowColor: c.shadow,
+      shadowOffset: { width: 0, height: theme.shadow.card.y },
+      shadowOpacity: theme.shadow.card.opacity,
+      shadowRadius: theme.shadow.card.radius,
+      width: "100%",
+      elevation: theme.shadow.card.elevation,
+    },
+    loadingCard: {
+      backgroundColor: c.card,
+      borderColor: c.borderSoft,
+    },
+    metaText: {
+      fontFamily: Fonts?.sans,
+      fontSize: 14,
+      fontWeight: "600",
+      marginTop: 8,
+      textAlign: "center",
+    },
+    relativeText: {
+      fontFamily: Fonts?.rounded,
+      fontSize: theme.sizes.hero,
+      fontWeight: "800",
+      letterSpacing: -0.4,
+      lineHeight: 36,
+      textAlign: "center",
+    },
+    skeletonHeadline: {
+      alignSelf: "center",
+      backgroundColor: c.mutedStrong,
+      borderRadius: 8,
+      height: 34,
+      marginBottom: 10,
+      width: "82%",
+    },
+    skeletonLine: {
+      alignSelf: "center",
+      backgroundColor: c.muted,
+      borderRadius: 8,
+      height: 14,
+      marginBottom: 8,
+      width: "56%",
+    },
+    skeletonLineShort: {
+      alignSelf: "center",
+      backgroundColor: c.muted,
+      borderRadius: 8,
+      height: 14,
+      width: "38%",
+    },
+  });
+}

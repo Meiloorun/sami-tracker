@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Fonts, type AppTheme } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { deleteFeeding, getFeedingsByDay, type FeedingDisplay } from "@/api/feeding";
 import HistoryDatePicker from "../../components/history-date-picker";
 
@@ -28,6 +30,9 @@ function formatFeedTime(dt: string) {
 }
 
 export default function History() {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [items, setItems] = useState<FeedingDisplay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,12 +78,14 @@ export default function History() {
 
   const onDelete = async (id: number) => {
     const confirmed =
-      Platform.OS === "web" ? window.confirm("Delete this feeding?") : await new Promise<boolean>((resolve) => {
-        Alert.alert("Delete feeding", "This cannot be undone.", [
-          { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-          { text: "Delete", style: "destructive", onPress: () => resolve(true) },
-        ]);
-      });
+      Platform.OS === "web"
+        ? window.confirm("Delete this feeding?")
+        : await new Promise<boolean>((resolve) => {
+            Alert.alert("Delete feeding", "This cannot be undone.", [
+              { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+              { text: "Delete", style: "destructive", onPress: () => resolve(true) },
+            ]);
+          });
 
     if (!confirmed) return;
 
@@ -108,7 +115,11 @@ export default function History() {
 
             <Pressable
               disabled={!canGoNext}
-              style={({ pressed }) => [styles.arrowBtn, !canGoNext && styles.disabled, pressed && canGoNext && styles.btnPressed]}
+              style={({ pressed }) => [
+                styles.arrowBtn,
+                !canGoNext && styles.disabled,
+                pressed && canGoNext && styles.btnPressed,
+              ]}
               onPress={goNext}
             >
               <Text style={styles.arrowText}>{">"}</Text>
@@ -137,7 +148,11 @@ export default function History() {
                   <Pressable
                     onPress={() => onDelete(item.id)}
                     disabled={deletingId === item.id}
-                    style={({ pressed }) => [styles.deleteBtn, pressed && styles.btnPressed, deletingId === item.id && styles.disabled]}
+                    style={({ pressed }) => [
+                      styles.deleteBtn,
+                      pressed && styles.btnPressed,
+                      deletingId === item.id && styles.disabled,
+                    ]}
                   >
                     <Text style={styles.deleteText}>{deletingId === item.id ? "..." : "Delete"}</Text>
                   </Pressable>
@@ -154,42 +169,151 @@ export default function History() {
   );
 }
 
-const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#020617", alignItems: "center", padding: 16 },
-  column: { width: "100%", maxWidth: 520, gap: 14, overflow: "visible" },
-  topCard: {
-    backgroundColor: "#0f172a",
-    borderColor: "#334155",
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
-    overflow: "visible",
-    position: "relative",
-    zIndex: 30,
-  },
-  title: { color: "#f8fafc", fontSize: 20, fontWeight: "800", marginBottom: 10 },
-  navRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 },
-  arrowBtn: { minWidth: 44, minHeight: 44, borderRadius: 10, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" },
-  arrowText: { color: "#e2e8f0", fontSize: 18, fontWeight: "700" },
-  dateLabel: { color: "#e2e8f0", flex: 1, textAlign: "center", fontSize: 14, fontWeight: "700" },
-  listCard: {
-    backgroundColor: "#0f172a",
-    borderColor: "#334155",
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 14,
-    flex: 1,
-    position: "relative",
-    zIndex: 1,
-  },
-  listContent: { gap: 10, paddingBottom: 6 },
-  item: { backgroundColor: "#111827", borderColor: "#1f2937", borderWidth: 1, borderRadius: 12, padding: 12 },
-  itemTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 },
-  desc: { color: "#f8fafc", fontSize: 16, fontWeight: "700", flex: 1 },
-  meta: { color: "#94a3b8", fontSize: 13, fontWeight: "600", marginTop: 2 },
-  deleteBtn: { minHeight: 36, minWidth: 64, borderRadius: 8, backgroundColor: "#7f1d1d", alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
-  deleteText: { color: "#fee2e2", fontSize: 13, fontWeight: "800" },
-  error: { color: "#fca5a5", fontSize: 13, fontWeight: "700", marginBottom: 8 },
-  disabled: { opacity: 0.45 },
-  btnPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
-});
+function createStyles(theme: AppTheme) {
+  const c = theme.colors;
+  return StyleSheet.create({
+    arrowBtn: {
+      alignItems: "center",
+      backgroundColor: c.secondary,
+      borderColor: c.borderSoft,
+      borderRadius: theme.radius.sm,
+      borderWidth: 1,
+      justifyContent: "center",
+      minHeight: 44,
+      minWidth: 44,
+    },
+    arrowText: {
+      color: c.textSoft,
+      fontFamily: Fonts?.rounded,
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    btnPressed: {
+      opacity: 0.88,
+      transform: [{ scale: 0.98 }],
+    },
+    column: {
+      gap: 14,
+      maxWidth: 520,
+      overflow: "visible",
+      width: "100%",
+    },
+    dateLabel: {
+      color: c.textSoft,
+      flex: 1,
+      fontFamily: Fonts?.sans,
+      fontSize: 14,
+      fontWeight: "700",
+      textAlign: "center",
+    },
+    deleteBtn: {
+      alignItems: "center",
+      backgroundColor: c.dangerSoft,
+      borderColor: c.danger,
+      borderRadius: 8,
+      borderWidth: 1,
+      justifyContent: "center",
+      minHeight: 36,
+      minWidth: 64,
+      paddingHorizontal: 10,
+    },
+    deleteText: {
+      color: c.dangerText,
+      fontFamily: Fonts?.rounded,
+      fontSize: 13,
+      fontWeight: "800",
+    },
+    desc: {
+      color: c.text,
+      flex: 1,
+      fontFamily: Fonts?.sans,
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    disabled: {
+      opacity: 0.45,
+    },
+    error: {
+      color: c.danger,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: "700",
+      marginBottom: 8,
+    },
+    item: {
+      backgroundColor: c.surface,
+      borderColor: c.borderSoft,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      padding: 12,
+    },
+    itemTop: {
+      alignItems: "center",
+      flexDirection: "row",
+      gap: 10,
+      justifyContent: "space-between",
+      marginBottom: 6,
+    },
+    listCard: {
+      backgroundColor: c.card,
+      borderColor: c.borderSoft,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      flex: 1,
+      padding: 14,
+      position: "relative",
+      shadowColor: c.shadow,
+      shadowOffset: { width: 0, height: theme.shadow.card.y },
+      shadowOpacity: theme.shadow.card.opacity,
+      shadowRadius: theme.shadow.card.radius,
+      zIndex: 1,
+      elevation: theme.shadow.card.elevation,
+    },
+    listContent: {
+      gap: 10,
+      paddingBottom: 6,
+    },
+    meta: {
+      color: c.textMuted,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: "600",
+      marginTop: 2,
+    },
+    navRow: {
+      alignItems: "center",
+      flexDirection: "row",
+      gap: 10,
+      justifyContent: "space-between",
+      marginBottom: 10,
+    },
+    page: {
+      alignItems: "center",
+      backgroundColor: c.background,
+      flex: 1,
+      padding: 16,
+    },
+    title: {
+      color: c.text,
+      fontFamily: Fonts?.rounded,
+      fontSize: 20,
+      fontWeight: "800",
+      marginBottom: 10,
+    },
+    topCard: {
+      backgroundColor: c.card,
+      borderColor: c.borderSoft,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      overflow: "visible",
+      padding: 14,
+      position: "relative",
+      shadowColor: c.shadow,
+      shadowOffset: { width: 0, height: theme.shadow.card.y },
+      shadowOpacity: theme.shadow.card.opacity,
+      shadowRadius: theme.shadow.card.radius,
+      zIndex: 30,
+      elevation: theme.shadow.card.elevation,
+    },
+  });
+}

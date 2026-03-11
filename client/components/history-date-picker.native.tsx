@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Fonts, type AppTheme } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/use-app-theme";
 
 type Props = {
   value: Date;
@@ -17,6 +19,8 @@ export default function HistoryDatePicker({
   label = "Date",
   disabled = false,
 }: Props) {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [open, setOpen] = useState(false);
 
   const onNativeChange = (_event: DateTimePickerEvent, next?: Date) => {
@@ -54,37 +58,42 @@ export default function HistoryDatePicker({
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    width: "100%",
-  },
-  label: {
-    color: "#cbd5e1",
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  trigger: {
-    alignItems: "center",
-    backgroundColor: "#0b1220",
-    borderColor: "#475569",
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  triggerText: {
-    color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
-  },
-  disabled: {
-    opacity: 0.55,
-  },
-});
+function createStyles(theme: AppTheme) {
+  const c = theme.colors;
+  return StyleSheet.create({
+    disabled: {
+      opacity: 0.55,
+    },
+    label: {
+      color: c.textSoft,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: "700",
+      marginBottom: 6,
+    },
+    pressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.99 }],
+    },
+    trigger: {
+      alignItems: "center",
+      backgroundColor: c.input,
+      borderColor: c.inputBorder,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      justifyContent: "center",
+      minHeight: 44,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    triggerText: {
+      color: c.text,
+      fontFamily: Fonts?.sans,
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    wrap: {
+      width: "100%",
+    },
+  });
+}

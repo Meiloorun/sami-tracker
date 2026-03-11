@@ -10,6 +10,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Fonts, type AppTheme } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import { addFeeding, type FeedingRecord } from "@/api/feeding";
 import HistoryDatePicker from "./history-date-picker";
 
@@ -30,7 +32,10 @@ type Props = {
 };
 
 export default function FeedingButton({ onAdded }: Props) {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const isWeb = Platform.OS === "web";
+
   const [open, setOpen] = useState(false);
   const [feedDescription, setFeedDescription] = useState("");
   const [notes, setNotes] = useState("");
@@ -106,8 +111,8 @@ export default function FeedingButton({ onAdded }: Props) {
       <View style={styles.quickActionRow}>
         {QUICK_ACTIONS.map((action) => (
           <Pressable
-            accessibilityRole="button"
             accessibilityLabel={`Quick log ${action.label}`}
+            accessibilityRole="button"
             key={action.label}
             onPress={() => openForm(action.value)}
             style={({ pressed }) => [styles.quickActionChip, pressed && styles.quickActionChipPressed]}
@@ -118,8 +123,8 @@ export default function FeedingButton({ onAdded }: Props) {
       </View>
 
       <Pressable
-        accessibilityRole="button"
         accessibilityLabel="Log Feeding"
+        accessibilityRole="button"
         onPress={() => openForm()}
         style={({ pressed }) => [styles.mainButton, pressed && styles.mainButtonPressed]}
       >
@@ -130,12 +135,12 @@ export default function FeedingButton({ onAdded }: Props) {
       <Modal transparent visible={open} animationType="fade" onRequestClose={closeForm}>
         <View style={styles.overlay}>
           <Pressable style={styles.backdrop} onPress={closeForm} />
-          <View style={[styles.card, isWeb && styles.cardWeb]}>
+          <View style={styles.card}>
             <View style={styles.headerRow}>
               <Text style={styles.title}>Log Feeding</Text>
               <Pressable
-                accessibilityRole="button"
                 accessibilityLabel="Close feeding form"
+                accessibilityRole="button"
                 style={({ pressed }) => [styles.closeButton, pressed && styles.closeButtonPressed]}
                 onPress={closeForm}
               >
@@ -146,7 +151,7 @@ export default function FeedingButton({ onAdded }: Props) {
             <ScrollView
               contentContainerStyle={styles.formContent}
               keyboardShouldPersistTaps="handled"
-              style={[styles.formScroll, isWeb && styles.formScrollWeb]}
+              style={styles.formScroll}
             >
               <View style={styles.row}>
                 <View style={styles.flex}>
@@ -200,6 +205,7 @@ export default function FeedingButton({ onAdded }: Props) {
                 editable={!saving}
                 onChangeText={setFeedDescription}
                 placeholder="e.g. Half pack wet food"
+                placeholderTextColor={theme.colors.textMuted}
                 style={styles.input}
                 value={feedDescription}
               />
@@ -217,6 +223,7 @@ export default function FeedingButton({ onAdded }: Props) {
                 multiline
                 onChangeText={setNotes}
                 placeholder="Any extra details"
+                placeholderTextColor={theme.colors.textMuted}
                 style={[styles.input, styles.notesInput]}
                 value={notes}
               />
@@ -225,8 +232,8 @@ export default function FeedingButton({ onAdded }: Props) {
             <View style={styles.footer}>
               {!!error && <Text style={styles.error}>{error}</Text>}
               <Pressable
-                accessibilityRole="button"
                 accessibilityLabel="Add feeding"
+                accessibilityRole="button"
                 disabled={!feedDescription.trim() || saving}
                 onPress={submit}
                 style={({ pressed }) => [
@@ -245,212 +252,230 @@ export default function FeedingButton({ onAdded }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  quickActionRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    justifyContent: "center",
-    marginBottom: 14,
-    width: "100%",
-  },
-  quickActionChip: {
-    alignItems: "center",
-    backgroundColor: "#1e293b",
-    borderColor: "#334155",
-    borderWidth: 1,
-    borderRadius: 999,
-    justifyContent: "center",
-    minHeight: 44,
-    minWidth: 96,
-    paddingHorizontal: 14,
-  },
-  quickActionChipPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
-  },
-  quickActionText: {
-    color: "#e2e8f0",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  mainButton: {
-    alignItems: "center",
-    backgroundColor: "#0369a1",
-    borderRadius: 22,
-    justifyContent: "center",
-    minHeight: 168,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    shadowColor: "#0c4a6e",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 8,
-    width: "100%",
-    elevation: 8,
-  },
-  mainButtonPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
-  },
-  mainButtonTitle: {
-    color: "#f8fafc",
-    fontSize: 31,
-    fontWeight: "800",
-    letterSpacing: -0.3,
-  },
-  mainButtonSubtitle: {
-    color: "#e0f2fe",
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 6,
-  },
-  overlay: {
-    alignItems: "center",
-    flex: 1,
-    justifyContent: "center",
-    padding: 16,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(2,6,23,0.5)",
-  },
-  card: {
-    backgroundColor: "#0f172a",
-    borderColor: "#334155",
-    borderWidth: 1,
-    borderRadius: 18,
-    maxHeight: "88%",
-    maxWidth: 520,
-    overflow: "hidden",
-    width: "100%",
-  },
-  cardWeb: {
-    overflow: "visible",
-  },
-  headerRow: {
-    alignItems: "center",
-    borderBottomColor: "#334155",
-    borderBottomWidth: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  title: {
-    color: "#f8fafc",
-    fontSize: 21,
-    fontWeight: "800",
-  },
-  closeButton: {
-    alignItems: "center",
-    borderRadius: 10,
-    justifyContent: "center",
-    minHeight: 44,
-    minWidth: 74,
-  },
-  closeButtonPressed: {
-    backgroundColor: "#1e293b",
-  },
-  closeText: {
-    color: "#bae6fd",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  formScroll: {
-    maxHeight: 420,
-  },
-  formScrollWeb: {
-    overflow: "visible",
-  },
-  formContent: {
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  flex: {
-    flex: 1,
-    minWidth: 180,
-  },
-  label: {
-    color: "#cbd5e1",
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: "#0b1220",
-    borderColor: "#475569",
-    borderRadius: 12,
-    borderWidth: 1,
-    color: "#f8fafc",
-    fontSize: 16,
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  webInput: {
-    backgroundColor: "#0b1220",
-    borderColor: "#475569",
-    borderRadius: 12,
-    borderWidth: 1,
-    color: "#f8fafc",
-    fontSize: 16,
-    minHeight: 44,
-    padding: 10,
-    width: "100%",
-  },
-  pickerValue: {
-    color: "#f8fafc",
-    fontSize: 16,
-  },
-  notesHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  notesCounter: {
-    color: "#94a3b8",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  notesInput: {
-    minHeight: 92,
-    textAlignVertical: "top",
-  },
-  footer: {
-    borderTopColor: "#334155",
-    borderTopWidth: 1,
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  error: {
-    color: "#fca5a5",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  submitButton: {
-    alignItems: "center",
-    backgroundColor: "#0369a1",
-    borderRadius: 12,
-    justifyContent: "center",
-    minHeight: 50,
-  },
-  submitPressed: {
-    opacity: 0.92,
-  },
-  submitText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "800",
-  },
-  disabled: {
-    opacity: 0.45,
-  },
-});
+function createStyles(theme: AppTheme) {
+  const c = theme.colors;
+  return StyleSheet.create({
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: c.overlay,
+    },
+    card: {
+      backgroundColor: c.card,
+      borderColor: c.borderSoft,
+      borderRadius: theme.radius.xl,
+      borderWidth: 1,
+      elevation: theme.shadow.pop.elevation,
+      maxHeight: "88%",
+      maxWidth: 520,
+      overflow: "visible",
+      shadowColor: c.shadow,
+      shadowOffset: { width: 0, height: theme.shadow.pop.y },
+      shadowOpacity: theme.shadow.pop.opacity,
+      shadowRadius: theme.shadow.pop.radius,
+      width: "100%",
+    },
+    closeButton: {
+      alignItems: "center",
+      borderRadius: theme.radius.sm,
+      justifyContent: "center",
+      minHeight: 44,
+      minWidth: 74,
+    },
+    closeButtonPressed: {
+      backgroundColor: c.muted,
+    },
+    closeText: {
+      color: c.textSoft,
+      fontFamily: Fonts?.rounded,
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    disabled: {
+      opacity: 0.45,
+    },
+    error: {
+      color: c.danger,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    flex: {
+      flex: 1,
+      minWidth: 180,
+    },
+    footer: {
+      borderTopColor: c.borderSoft,
+      borderTopWidth: 1,
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    formContent: {
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    formScroll: {
+      maxHeight: 420,
+      overflow: "visible",
+    },
+    headerRow: {
+      alignItems: "center",
+      borderBottomColor: c.borderSoft,
+      borderBottomWidth: 1,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    input: {
+      backgroundColor: c.input,
+      borderColor: c.inputBorder,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      color: c.text,
+      fontFamily: Fonts?.sans,
+      fontSize: 16,
+      minHeight: 44,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    label: {
+      color: c.textSoft,
+      fontFamily: Fonts?.sans,
+      fontSize: theme.sizes.label,
+      fontWeight: "700",
+      marginBottom: 6,
+    },
+    mainButton: {
+      alignItems: "center",
+      backgroundColor: c.primary,
+      borderColor: c.ring,
+      borderRadius: 24,
+      borderWidth: 1,
+      elevation: theme.shadow.pop.elevation,
+      justifyContent: "center",
+      minHeight: 168,
+      paddingHorizontal: 24,
+      paddingVertical: 20,
+      shadowColor: c.shadow,
+      shadowOffset: { width: 0, height: theme.shadow.pop.y },
+      shadowOpacity: theme.shadow.pop.opacity,
+      shadowRadius: theme.shadow.pop.radius,
+      width: "100%",
+    },
+    mainButtonPressed: {
+      backgroundColor: c.primaryPressed,
+      transform: [{ scale: 0.985 }],
+    },
+    mainButtonSubtitle: {
+      color: c.primaryText,
+      fontFamily: Fonts?.sans,
+      fontSize: 16,
+      fontWeight: "600",
+      marginTop: 6,
+      opacity: 0.95,
+    },
+    mainButtonTitle: {
+      color: c.primaryText,
+      fontFamily: Fonts?.rounded,
+      fontSize: theme.sizes.hero,
+      fontWeight: "800",
+      letterSpacing: -0.3,
+    },
+    notesCounter: {
+      color: c.textMuted,
+      fontFamily: Fonts?.mono,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    notesHeader: {
+      alignItems: "center",
+      flexDirection: "row",
+      justifyContent: "space-between",
+    },
+    notesInput: {
+      minHeight: 92,
+      textAlignVertical: "top",
+    },
+    overlay: {
+      alignItems: "center",
+      flex: 1,
+      justifyContent: "center",
+      padding: 16,
+    },
+    pickerValue: {
+      color: c.text,
+      fontFamily: Fonts?.sans,
+      fontSize: 16,
+    },
+    quickActionChip: {
+      alignItems: "center",
+      backgroundColor: c.secondary,
+      borderColor: c.borderSoft,
+      borderRadius: theme.radius.pill,
+      borderWidth: 1,
+      justifyContent: "center",
+      minHeight: 44,
+      minWidth: 96,
+      paddingHorizontal: 14,
+    },
+    quickActionChipPressed: {
+      backgroundColor: c.surfaceAlt,
+      transform: [{ scale: 0.98 }],
+    },
+    quickActionRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+      justifyContent: "center",
+      marginBottom: 14,
+      width: "100%",
+    },
+    quickActionText: {
+      color: c.textSoft,
+      fontFamily: Fonts?.rounded,
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    row: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    submitButton: {
+      alignItems: "center",
+      backgroundColor: c.primary,
+      borderRadius: theme.radius.md,
+      justifyContent: "center",
+      minHeight: 50,
+    },
+    submitPressed: {
+      backgroundColor: c.primaryPressed,
+    },
+    submitText: {
+      color: c.primaryText,
+      fontFamily: Fonts?.rounded,
+      fontSize: 17,
+      fontWeight: "800",
+    },
+    title: {
+      color: c.text,
+      fontFamily: Fonts?.rounded,
+      fontSize: theme.sizes.title,
+      fontWeight: "800",
+    },
+    webInput: {
+      backgroundColor: c.input,
+      borderColor: c.inputBorder,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      color: c.text,
+      fontFamily: Fonts?.sans,
+      fontSize: 16,
+      minHeight: 44,
+      padding: 10,
+      width: "100%",
+    },
+  });
+}

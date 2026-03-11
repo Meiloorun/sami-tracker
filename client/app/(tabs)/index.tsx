@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Fonts, type AppTheme } from "@/constants/theme";
 import FeedingButton from "@/components/feeding-button";
 import LastFedBanner from "@/components/last-fed-banner";
+import { useAppTheme } from "@/hooks/use-app-theme";
 import {
   deleteFeeding,
   getLatestFeeding,
   getRecentFeedings,
-  type FeedingRecord,
   type FeedingDisplay,
+  type FeedingRecord,
 } from "@/api/feeding";
 
 type SnackbarState = {
@@ -32,6 +34,9 @@ function formatRecentDate(dateTime: string) {
 }
 
 export default function HomeScreen() {
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [latest, setLatest] = useState<FeedingDisplay | null>(null);
   const [recent, setRecent] = useState<FeedingDisplay[]>([]);
   const [latestLoading, setLatestLoading] = useState(true);
@@ -54,10 +59,7 @@ export default function HomeScreen() {
 
     setLoadError(null);
     try {
-      const [latestData, recentData] = await Promise.all([
-        getLatestFeeding(),
-        getRecentFeedings(3),
-      ]);
+      const [latestData, recentData] = await Promise.all([getLatestFeeding(), getRecentFeedings(3)]);
       setLatest(latestData);
       setRecent(recentData);
     } catch {
@@ -154,114 +156,134 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  page: {
-    alignItems: "center",
-    backgroundColor: "#020617",
-    flex: 1,
-    padding: 16,
-  },
-  column: {
-    maxWidth: 520,
-    width: "100%",
-  },
-  recentCard: {
-    backgroundColor: "#0f172a",
-    borderColor: "#334155",
-    borderRadius: 16,
-    borderWidth: 1,
-    marginTop: 18,
-    padding: 16,
-  },
-  recentTitle: {
-    color: "#f8fafc",
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 10,
-  },
-  recentLoadingWrap: {
-    gap: 10,
-  },
-  recentSkeleton: {
-    backgroundColor: "#1e293b",
-    borderRadius: 8,
-    height: 20,
-    width: "100%",
-  },
-  recentSkeletonShort: {
-    backgroundColor: "#334155",
-    borderRadius: 8,
-    height: 20,
-    width: "75%",
-  },
-  recentList: {
-    gap: 12,
-  },
-  recentRow: {
-    borderBottomColor: "#1e293b",
-    borderBottomWidth: 1,
-    paddingBottom: 10,
-  },
-  recentDescription: {
-    color: "#e2e8f0",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  recentMeta: {
-    color: "#94a3b8",
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  emptyText: {
-    color: "#94a3b8",
-    fontSize: 14,
-    fontWeight: "600",
-    lineHeight: 20,
-  },
-  errorText: {
-    color: "#fca5a5",
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 12,
-  },
-  snackbar: {
-    alignItems: "center",
-    backgroundColor: "#111827",
-    borderColor: "#334155",
-    borderWidth: 1,
-    borderRadius: 12,
-    bottom: 16,
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    maxWidth: 520,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    position: "absolute",
-    width: "100%",
-  },
-  snackbarText: {
-    color: "#f8fafc",
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  snackbarUndo: {
-    alignItems: "center",
-    backgroundColor: "#0369a1",
-    borderRadius: 10,
-    justifyContent: "center",
-    minHeight: 44,
-    minWidth: 72,
-    paddingHorizontal: 12,
-  },
-  snackbarUndoPressed: {
-    opacity: 0.9,
-  },
-  snackbarUndoText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "800",
-  },
-});
+function createStyles(theme: AppTheme) {
+  const c = theme.colors;
+  return StyleSheet.create({
+    column: {
+      maxWidth: 520,
+      width: "100%",
+    },
+    emptyText: {
+      color: c.textMuted,
+      fontFamily: Fonts?.sans,
+      fontSize: 14,
+      fontWeight: "600",
+      lineHeight: 20,
+    },
+    errorText: {
+      color: c.danger,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: "700",
+      marginTop: 12,
+    },
+    page: {
+      alignItems: "center",
+      backgroundColor: c.background,
+      flex: 1,
+      padding: 16,
+    },
+    recentCard: {
+      backgroundColor: c.card,
+      borderColor: c.borderSoft,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      marginTop: 18,
+      padding: 16,
+      shadowColor: c.shadow,
+      shadowOffset: { width: 0, height: theme.shadow.card.y },
+      shadowOpacity: theme.shadow.card.opacity,
+      shadowRadius: theme.shadow.card.radius,
+      elevation: theme.shadow.card.elevation,
+    },
+    recentDescription: {
+      color: c.textSoft,
+      fontFamily: Fonts?.sans,
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    recentList: {
+      gap: 12,
+    },
+    recentLoadingWrap: {
+      gap: 10,
+    },
+    recentMeta: {
+      color: c.textMuted,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: "600",
+      marginTop: 2,
+    },
+    recentRow: {
+      borderBottomColor: c.muted,
+      borderBottomWidth: 1,
+      paddingBottom: 10,
+    },
+    recentSkeleton: {
+      backgroundColor: c.surfaceAlt,
+      borderRadius: 8,
+      height: 20,
+      width: "100%",
+    },
+    recentSkeletonShort: {
+      backgroundColor: c.mutedStrong,
+      borderRadius: 8,
+      height: 20,
+      width: "75%",
+    },
+    recentTitle: {
+      color: c.text,
+      fontFamily: Fonts?.rounded,
+      fontSize: 18,
+      fontWeight: "800",
+      marginBottom: 10,
+    },
+    snackbar: {
+      alignItems: "center",
+      backgroundColor: c.cardAlt,
+      borderColor: c.borderStrong,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      bottom: 16,
+      flexDirection: "row",
+      gap: 12,
+      justifyContent: "space-between",
+      maxWidth: 520,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      position: "absolute",
+      shadowColor: c.shadow,
+      shadowOffset: { width: 0, height: theme.shadow.pop.y },
+      shadowOpacity: theme.shadow.pop.opacity,
+      shadowRadius: theme.shadow.pop.radius,
+      width: "100%",
+      elevation: theme.shadow.pop.elevation,
+    },
+    snackbarText: {
+      color: c.text,
+      flex: 1,
+      fontFamily: Fonts?.sans,
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    snackbarUndo: {
+      alignItems: "center",
+      backgroundColor: c.primary,
+      borderRadius: 10,
+      justifyContent: "center",
+      minHeight: 44,
+      minWidth: 72,
+      paddingHorizontal: 12,
+    },
+    snackbarUndoPressed: {
+      backgroundColor: c.primaryPressed,
+    },
+    snackbarUndoText: {
+      color: c.primaryText,
+      fontFamily: Fonts?.rounded,
+      fontSize: 14,
+      fontWeight: "800",
+    },
+  });
+}
