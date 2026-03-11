@@ -15,6 +15,7 @@
       "icon": "./assets/images/icon.png",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "usesCleartextTraffic": true,
       "package": "com.meiloorun.samitracker"
     },
     "web": {
