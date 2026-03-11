@@ -4,6 +4,13 @@ import { Platform } from "react-native";
 const SESSION_KEY = "sami_session_v1";
 const CLIENT_INSTANCE_ID_KEY = "sami_client_instance_id";
 
+function generateClientInstanceId() {
+    const random = Math.random().toString(36).slice(2, 10);
+    const random2 = Math.random().toString(36).slice(2, 10);
+    const ts = Date.now().toString(36);
+    return `ci_${ts}_${random}_${random2}`;
+}
+
 export type Session = {
     token: string;
     user: {
@@ -41,7 +48,7 @@ export async function getClientInstanceId(): Promise<string> {
     if (Platform.OS === "web") {
         let id = localStorage.getItem(CLIENT_INSTANCE_ID_KEY);
         if (!id) {
-            id = crypto.randomUUID();
+            id = generateClientInstanceId();
             localStorage.setItem(CLIENT_INSTANCE_ID_KEY, id);
         }
         return id;
@@ -49,7 +56,7 @@ export async function getClientInstanceId(): Promise<string> {
 
     let id = await SecureStore.getItemAsync(CLIENT_INSTANCE_ID_KEY);
     if (!id) {
-        id = crypto.randomUUID();
+        id = generateClientInstanceId();
         await SecureStore.setItemAsync(CLIENT_INSTANCE_ID_KEY, id);
     }
     return id;

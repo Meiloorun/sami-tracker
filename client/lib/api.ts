@@ -23,7 +23,8 @@ function withLeadingSlash(path: string): string {
 }
 
 function isLikelyNetworkError(error: unknown): boolean {
-  return error instanceof TypeError || error instanceof DOMException;
+  const hasDomException = typeof DOMException !== "undefined";
+  return error instanceof TypeError || (hasDomException && error instanceof DOMException);
 }
 
 async function pingHealth(baseUrl: string): Promise<boolean> {
