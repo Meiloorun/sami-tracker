@@ -159,6 +159,7 @@ export default function FeedingButton({ onAdded }: Props) {
                     disabled={saving}
                     label="Date"
                     onChange={onDateChange}
+                    maxDate={new Date()}
                     value={selectedDateTime}
                   />
                 </View>
