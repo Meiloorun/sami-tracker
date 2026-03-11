@@ -1,10 +1,17 @@
-const BASE_URL = "http://localhost:3000";
+import { getClientDeviceName } from "@/lib/device";
+import { Platform } from "react-native";
+
+const BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 
 export async function identify(email: string) {
     const res = await fetch(`${BASE_URL}/identify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+            email,
+            device_name: getClientDeviceName(),
+            platform: Platform.OS,
+        }),
     })
 
     if (!res.ok) {

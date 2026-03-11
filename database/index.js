@@ -10,6 +10,7 @@ const crypto = require("crypto");
 const app = express();
 app.use(cors());
 app.use(express.json());
+const PORT = Number(process.env.PORT) || 3000;
 
 function normaliseEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -193,11 +194,16 @@ app.post("/identify", async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
+        const deviceName = String(req.body?.device_name || "Unknown Device").trim().substring(0, 255);
+        const platform = String(req.body?.platform || "Unknown Platform").trim().substring(0, 255);
+
         const token = generateDeviceToken();
         const hashedToken = hashDeviceToken(token);
 
         await db.insert(user_devices).values({ 
                 user_id: user.id, 
+                device_name: deviceName,
+                platform: platform,
                 token_hash: hashedToken, 
                 last_seen: new Date()
         });
@@ -215,6 +221,10 @@ app.post("/identify", async (req, res) => {
     }
 });
 
-app.listen(3000, () => {
-    console.log("Feeding API running on http://localhost:3000");
+app.get("/health", (_req, res) => {
+    res.json({ ok: true, timestamp: new Date().toISOString() });
+});
+
+app.listen(PORT, () => {
+    console.log(`Feeding API running on port ${PORT}`);
 });

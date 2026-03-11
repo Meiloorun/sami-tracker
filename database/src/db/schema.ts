@@ -19,6 +19,8 @@ export const feedings = pgTable("feedings", {
 export const user_devices = pgTable("user_devices", {
     id: serial("id").primaryKey(),
     user_id: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    device_name: text("device_name"),
+    platform: text("platform"),
     token_hash: text("token_hash").notNull().unique(),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     last_seen: timestamp("last_seen", { withTimezone: true }).defaultNow().notNull(),

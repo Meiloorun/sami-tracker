@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/session';
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 
 export type FeedingRecord = {
   id: number;
