@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { addFeeding, type FeedingRecord } from "@/api/feeding";
+import HistoryDatePicker from "./history-date-picker";
 
 const NOTES_LIMIT = 220;
 const QUICK_ACTIONS = [
@@ -34,9 +35,7 @@ export default function FeedingButton({ onAdded }: Props) {
   const [feedDescription, setFeedDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedDateTime, setSelectedDateTime] = useState(new Date());
-  const [dateValue, setDateValue] = useState(toDateInput(new Date()));
   const [timeValue, setTimeValue] = useState(toTimeInput(new Date()));
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +45,6 @@ export default function FeedingButton({ onAdded }: Props) {
   const openForm = (prefillDescription?: string) => {
     const now = new Date();
     setSelectedDateTime(now);
-    setDateValue(toDateInput(now));
     setTimeValue(toTimeInput(now));
     setFeedDescription(prefillDescription ?? "");
     setNotes("");
@@ -59,10 +57,7 @@ export default function FeedingButton({ onAdded }: Props) {
     setOpen(false);
   };
 
-  const onDateChange = (_event: DateTimePickerEvent, date?: Date) => {
-    setShowDatePicker(false);
-    if (!date) return;
-
+  const onDateChange = (date: Date) => {
     const next = new Date(selectedDateTime);
     next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
     setSelectedDateTime(next);
@@ -85,7 +80,9 @@ export default function FeedingButton({ onAdded }: Props) {
     }
 
     const webTime = timeValue.length === 5 ? `${timeValue}:00` : timeValue;
-    const feedingDate = isWeb ? new Date(`${dateValue}T${webTime}`) : selectedDateTime;
+    const feedingDate = isWeb
+      ? new Date(`${toDateInput(selectedDateTime)}T${webTime}`)
+      : selectedDateTime;
     if (Number.isNaN(feedingDate.getTime())) {
       setError("Please enter a valid date and time.");
       return;
@@ -133,7 +130,7 @@ export default function FeedingButton({ onAdded }: Props) {
       <Modal transparent visible={open} animationType="fade" onRequestClose={closeForm}>
         <View style={styles.overlay}>
           <Pressable style={styles.backdrop} onPress={closeForm} />
-          <View style={styles.card}>
+          <View style={[styles.card, isWeb && styles.cardWeb]}>
             <View style={styles.headerRow}>
               <Text style={styles.title}>Log Feeding</Text>
               <Pressable
@@ -149,31 +146,16 @@ export default function FeedingButton({ onAdded }: Props) {
             <ScrollView
               contentContainerStyle={styles.formContent}
               keyboardShouldPersistTaps="handled"
-              style={styles.formScroll}
+              style={[styles.formScroll, isWeb && styles.formScrollWeb]}
             >
               <View style={styles.row}>
                 <View style={styles.flex}>
-                  <Text style={styles.label}>Date</Text>
-                  {isWeb ? (
-                    <input
-                      aria-label="Feeding date"
-                      disabled={saving}
-                      onChange={(event) => setDateValue(event.currentTarget.value)}
-                      style={{ ...(styles.webInput as any), boxSizing: "border-box" }}
-                      type="date"
-                      value={dateValue}
-                    />
-                  ) : (
-                    <Pressable
-                      accessibilityLabel="Select feeding date"
-                      accessibilityRole="button"
-                      disabled={saving}
-                      onPress={() => setShowDatePicker(true)}
-                      style={styles.input}
-                    >
-                      <Text style={styles.pickerValue}>{selectedDateTime.toLocaleDateString()}</Text>
-                    </Pressable>
-                  )}
+                  <HistoryDatePicker
+                    disabled={saving}
+                    label="Date"
+                    onChange={onDateChange}
+                    value={selectedDateTime}
+                  />
                 </View>
 
                 <View style={styles.flex}>
@@ -208,9 +190,6 @@ export default function FeedingButton({ onAdded }: Props) {
                 </View>
               </View>
 
-              {!isWeb && showDatePicker && (
-                <DateTimePicker mode="date" onChange={onDateChange} value={selectedDateTime} />
-              )}
               {!isWeb && showTimePicker && (
                 <DateTimePicker mode="time" onChange={onTimeChange} value={selectedDateTime} />
               )}
@@ -346,6 +325,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     width: "100%",
   },
+  cardWeb: {
+    overflow: "visible",
+  },
   headerRow: {
     alignItems: "center",
     borderBottomColor: "#334155",
@@ -377,6 +359,9 @@ const styles = StyleSheet.create({
   },
   formScroll: {
     maxHeight: 420,
+  },
+  formScrollWeb: {
+    overflow: "visible",
   },
   formContent: {
     gap: 8,

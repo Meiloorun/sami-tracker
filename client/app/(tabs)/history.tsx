@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { deleteFeeding, getFeedingsByDay, type FeedingDisplay } from "@/api/feeding";
+import HistoryDatePicker from "../../components/history-date-picker";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toDayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -29,7 +29,6 @@ function formatFeedTime(dt: string) {
 
 export default function History() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [showPicker, setShowPicker] = useState(false);
   const [items, setItems] = useState<FeedingDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,11 +71,6 @@ export default function History() {
     });
   };
 
-  const onMobileDateChange = (_e: DateTimePickerEvent, date?: Date) => {
-    setShowPicker(false);
-    if (date) setSelectedDate(date);
-  };
-
   const onDelete = async (id: number) => {
     const confirmed =
       Platform.OS === "web" ? window.confirm("Delete this feeding?") : await new Promise<boolean>((resolve) => {
@@ -107,7 +101,7 @@ export default function History() {
 
           <View style={styles.navRow}>
             <Pressable style={({ pressed }) => [styles.arrowBtn, pressed && styles.btnPressed]} onPress={goPrev}>
-              <Text style={styles.arrowText}>◀</Text>
+              <Text style={styles.arrowText}>{"<"}</Text>
             </Pressable>
 
             <Text style={styles.dateLabel}>{formatHeaderDate(selectedKey)}</Text>
@@ -117,29 +111,16 @@ export default function History() {
               style={({ pressed }) => [styles.arrowBtn, !canGoNext && styles.disabled, pressed && canGoNext && styles.btnPressed]}
               onPress={goNext}
             >
-              <Text style={styles.arrowText}>▶</Text>
+              <Text style={styles.arrowText}>{">"}</Text>
             </Pressable>
           </View>
 
-          {Platform.OS === "web" ? (
-            <input
-              type="date"
-              value={selectedKey}
-              max={todayKey}
-              onChange={(e) => setSelectedDate(parseDayKey(e.currentTarget.value))}
-              style={{ ...(styles.webDateInput as any), boxSizing: "border-box" }}
-              aria-label="Select history date"
-            />
-          ) : (
-            <>
-              <Pressable style={({ pressed }) => [styles.dateBtn, pressed && styles.btnPressed]} onPress={() => setShowPicker(true)}>
-                <Text style={styles.dateBtnText}>Choose Date</Text>
-              </Pressable>
-              {showPicker && (
-                <DateTimePicker mode="date" value={selectedDate} maximumDate={new Date()} onChange={onMobileDateChange} />
-              )}
-            </>
-          )}
+          <HistoryDatePicker
+            label="Date"
+            maxDate={new Date()}
+            onChange={setSelectedDate}
+            value={selectedDate}
+          />
         </View>
 
         <View style={styles.listCard}>
@@ -175,17 +156,32 @@ export default function History() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#020617", alignItems: "center", padding: 16 },
-  column: { width: "100%", maxWidth: 520, gap: 14 },
-  topCard: { backgroundColor: "#0f172a", borderColor: "#334155", borderWidth: 1, borderRadius: 16, padding: 14 },
+  column: { width: "100%", maxWidth: 520, gap: 14, overflow: "visible" },
+  topCard: {
+    backgroundColor: "#0f172a",
+    borderColor: "#334155",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    overflow: "visible",
+    position: "relative",
+    zIndex: 30,
+  },
   title: { color: "#f8fafc", fontSize: 20, fontWeight: "800", marginBottom: 10 },
   navRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 },
   arrowBtn: { minWidth: 44, minHeight: 44, borderRadius: 10, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" },
   arrowText: { color: "#e2e8f0", fontSize: 18, fontWeight: "700" },
   dateLabel: { color: "#e2e8f0", flex: 1, textAlign: "center", fontSize: 14, fontWeight: "700" },
-  webDateInput: { width: "100%", minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: "#475569", backgroundColor: "#0b1220", color: "#f8fafc", fontSize: 16, padding: 10 },
-  dateBtn: { minHeight: 44, borderRadius: 10, backgroundColor: "#1e293b", alignItems: "center", justifyContent: "center" },
-  dateBtnText: { color: "#e2e8f0", fontSize: 15, fontWeight: "700" },
-  listCard: { backgroundColor: "#0f172a", borderColor: "#334155", borderWidth: 1, borderRadius: 16, padding: 14, flex: 1 },
+  listCard: {
+    backgroundColor: "#0f172a",
+    borderColor: "#334155",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    flex: 1,
+    position: "relative",
+    zIndex: 1,
+  },
   listContent: { gap: 10, paddingBottom: 6 },
   item: { backgroundColor: "#111827", borderColor: "#1f2937", borderWidth: 1, borderRadius: 12, padding: 12 },
   itemTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 },
