@@ -46,6 +46,32 @@ function parseDayKey(dayKey) {
   return { start, end };
 }
 
+function parseDayKeyWithOffset(dayKey, tzOffsetMinutes) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dayKey || ""));
+  if (!m) return null;
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const offset = Number(tzOffsetMinutes);
+
+  if (
+    !Number.isFinite(offset) ||
+    !Number.isInteger(offset) ||
+    offset < -840 ||
+    offset > 840
+  ) {
+    return null;
+  }
+
+  const utcStartMs = Date.UTC(year, month - 1, day, 0, 0, 0, 0) + offset * 60 * 1000;
+  const utcEndMs = utcStartMs + 24 * 60 * 60 * 1000;
+  const start = new Date(utcStartMs);
+  const end = new Date(utcEndMs);
+
+  return { start, end };
+}
+
 app.get("/feedings", async (req, res) => {
     const result = await db.select().from(feedings)
     res.json(result);
@@ -103,9 +129,12 @@ app.get("/feedings/recent", async (req, res) => {
 
 app.get("/feedings/day", async (req, res) => {
   try {
-    const range = parseDayKey(req.query.date);
+    const hasOffset = req.query.tzOffsetMinutes !== undefined;
+    const range = hasOffset
+      ? parseDayKeyWithOffset(req.query.date, req.query.tzOffsetMinutes)
+      : parseDayKey(req.query.date);
     if (!range) {
-      return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+      return res.status(400).json({ error: "date must be YYYY-MM-DD and tzOffsetMinutes must be valid when provided" });
     }
 
     const rows = await db

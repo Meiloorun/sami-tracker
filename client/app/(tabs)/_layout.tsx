@@ -63,7 +63,8 @@ export default function TabLayout() {
         name="history"
         options={{
           title: 'History',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar.day.timeline.leading" color={color} />,
+          tabBarAccessibilityLabel: 'History calendar tab',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar" color={color} />,
         }}
       />
     </Tabs>

@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/session';
-const BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+import { apiFetch } from "@/lib/api";
 
 export type FeedingRecord = {
   id: number;
@@ -17,7 +17,7 @@ export async function addFeeding(feed_description: string, date_time: Date, note
   if (!session) {
     throw new Error("You need to be logged in to add a feeding");
   }
-  const res = await fetch(`${BASE_URL}/feedings`, {
+  const res = await apiFetch("/feedings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -37,32 +37,37 @@ export async function addFeeding(feed_description: string, date_time: Date, note
 }
 
 export async function getFeedings(): Promise<FeedingRecord[]> {
-  const res = await fetch(`${BASE_URL}/feedings`);
+  const res = await apiFetch("/feedings", undefined, { allowNetworkFallback: true });
   if (!res.ok) throw new Error("Failed to load feedings");
   return res.json();
 }
 
 export async function getLatestFeeding(): Promise<FeedingDisplay | null> {
-  const res = await fetch(`${BASE_URL}/feedings/latest`);
+  const res = await apiFetch("/feedings/latest", undefined, { allowNetworkFallback: true });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to load latest feeding");
   return res.json();
 }
 
 export async function getRecentFeedings(limit = 3): Promise<FeedingDisplay[]> {
-  const res = await fetch(`${BASE_URL}/feedings/recent?limit=${limit}`);
+  const res = await apiFetch(`/feedings/recent?limit=${limit}`, undefined, { allowNetworkFallback: true });
   if (!res.ok) throw new Error("Failed to load recent feedings");
   return res.json();
 }
 
 export async function getFeedingsByDay(date: string): Promise<FeedingDisplay[]> {
-  const res = await fetch(`${BASE_URL}/feedings/day?date=${encodeURIComponent(date)}`);
+  const tzOffsetMinutes = new Date().getTimezoneOffset();
+  const res = await apiFetch(
+    `/feedings/day?date=${encodeURIComponent(date)}&tzOffsetMinutes=${tzOffsetMinutes}`,
+    undefined,
+    { allowNetworkFallback: true },
+  );
   if (!res.ok) throw new Error("Failed to load day feedings");
   return res.json();
 }
 
 export async function deleteFeeding(feedingId: number): Promise<FeedingRecord> {
-  const res = await fetch(`${BASE_URL}/feedings/${feedingId}`, { method: "DELETE" });
+  const res = await apiFetch(`/feedings/${feedingId}`, { method: "DELETE" });
   if (!res.ok) {
     const details = await res.text();
     throw new Error(details || "Failed to delete feeding");

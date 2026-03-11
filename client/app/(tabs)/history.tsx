@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Fonts, type AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { deleteFeeding, getFeedingsByDay, type FeedingDisplay } from "@/api/feeding";
@@ -101,7 +102,8 @@ export default function History() {
   };
 
   return (
-    <View style={styles.page}>
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      <View style={styles.page}>
       <View style={styles.column}>
         <View style={styles.topCard}>
           <Text style={styles.title}>Feeding History</Text>
@@ -140,7 +142,7 @@ export default function History() {
 
           {!!error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <ScrollView contentContainerStyle={styles.listContent}>
+          <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
             {items.map((item) => (
               <View key={item.id} style={styles.item}>
                 <View style={styles.itemTop}>
@@ -165,7 +167,8 @@ export default function History() {
           </ScrollView>
         </View>
       </View>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -193,6 +196,7 @@ function createStyles(theme: AppTheme) {
       transform: [{ scale: 0.98 }],
     },
     column: {
+      flex: 1,
       gap: 14,
       maxWidth: 520,
       overflow: "visible",
@@ -260,6 +264,7 @@ function createStyles(theme: AppTheme) {
       borderRadius: theme.radius.lg,
       borderWidth: 1,
       flex: 1,
+      minHeight: 0,
       padding: 14,
       position: "relative",
       shadowColor: c.shadow,
@@ -271,7 +276,10 @@ function createStyles(theme: AppTheme) {
     },
     listContent: {
       gap: 10,
-      paddingBottom: 6,
+      paddingBottom: 12,
+    },
+    listScroll: {
+      flex: 1,
     },
     meta: {
       color: c.textMuted,
@@ -291,7 +299,12 @@ function createStyles(theme: AppTheme) {
       alignItems: "center",
       backgroundColor: c.background,
       flex: 1,
+      paddingBottom: 16,
       padding: 16,
+    },
+    safe: {
+      backgroundColor: c.background,
+      flex: 1,
     },
     title: {
       color: c.text,

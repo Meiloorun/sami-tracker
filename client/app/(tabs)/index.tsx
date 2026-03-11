@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Fonts, type AppTheme } from "@/constants/theme";
 import FeedingButton from "@/components/feeding-button";
 import LastFedBanner from "@/components/last-fed-banner";
@@ -36,6 +38,7 @@ function formatRecentDate(dateTime: string) {
 export default function HomeScreen() {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
 
   const [latest, setLatest] = useState<FeedingDisplay | null>(null);
   const [recent, setRecent] = useState<FeedingDisplay[]>([]);
@@ -43,6 +46,7 @@ export default function HomeScreen() {
   const [recentLoading, setRecentLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showSnackbar = useCallback((message: string, undoId?: number) => {
@@ -74,6 +78,27 @@ export default function HomeScreen() {
     loadHomeData(true);
   }, [loadHomeData]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadHomeData();
+      const intervalId = setInterval(() => {
+        loadHomeData();
+      }, 30_000);
+
+      return () => clearInterval(intervalId);
+    }, [loadHomeData]),
+  );
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        loadHomeData();
+      }
+    });
+
+    return () => sub.remove();
+  }, [loadHomeData]);
+
   useEffect(() => {
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -103,56 +128,79 @@ export default function HomeScreen() {
 
   const hasRecentItems = useMemo(() => recent.length > 0, [recent]);
 
+  const onPullRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadHomeData();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadHomeData]);
+
   return (
-    <View style={styles.page}>
-      <View style={styles.column}>
-        <LastFedBanner latest={latest} loading={latestLoading} />
-        <FeedingButton onAdded={handleAdded} />
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      <View style={styles.page}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onPullRefresh}
+              tintColor={theme.colors.primary}
+            />
+          }
+          style={styles.scroll}
+        >
+          <View style={styles.column}>
+            <LastFedBanner latest={latest} loading={latestLoading} />
+            <FeedingButton onAdded={handleAdded} />
 
-        <View style={styles.recentCard}>
-          <Text style={styles.recentTitle}>Recent Feedings</Text>
+            <View style={styles.recentCard}>
+              <Text style={styles.recentTitle}>Recent Feedings</Text>
 
-          {recentLoading ? (
-            <View style={styles.recentLoadingWrap}>
-              <View style={styles.recentSkeleton} />
-              <View style={styles.recentSkeleton} />
-              <View style={styles.recentSkeletonShort} />
-            </View>
-          ) : hasRecentItems ? (
-            <View style={styles.recentList}>
-              {recent.map((feeding) => (
-                <View key={feeding.id} style={styles.recentRow}>
-                  <Text style={styles.recentDescription}>{feeding.feed_description}</Text>
-                  <Text style={styles.recentMeta}>
-                    {formatRecentDate(feeding.date_time)} by {feeding.user_name}
-                  </Text>
+              {recentLoading ? (
+                <View style={styles.recentLoadingWrap}>
+                  <View style={styles.recentSkeleton} />
+                  <View style={styles.recentSkeleton} />
+                  <View style={styles.recentSkeletonShort} />
                 </View>
-              ))}
+              ) : hasRecentItems ? (
+                <View style={styles.recentList}>
+                  {recent.map((feeding) => (
+                    <View key={feeding.id} style={styles.recentRow}>
+                      <Text style={styles.recentDescription}>{feeding.feed_description}</Text>
+                      <Text style={styles.recentMeta}>
+                        {formatRecentDate(feeding.date_time)} by {feeding.user_name}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyText}>No recent feedings yet. Add one to get started.</Text>
+              )}
+
+              {!!loadError && <Text style={styles.errorText}>{loadError}</Text>}
             </View>
-          ) : (
-            <Text style={styles.emptyText}>No recent feedings yet. Add one to get started.</Text>
-          )}
+          </View>
+        </ScrollView>
 
-          {!!loadError && <Text style={styles.errorText}>{loadError}</Text>}
-        </View>
+        {snackbar && (
+          <View style={[styles.snackbar, { bottom: 16 + insets.bottom }]}>
+            <Text style={styles.snackbarText}>{snackbar.message}</Text>
+            {!!snackbar.undoId && (
+              <Pressable
+                accessibilityLabel="Undo last feeding"
+                accessibilityRole="button"
+                onPress={handleUndo}
+                style={({ pressed }) => [styles.snackbarUndo, pressed && styles.snackbarUndoPressed]}
+              >
+                <Text style={styles.snackbarUndoText}>Undo</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
       </View>
-
-      {snackbar && (
-        <View style={styles.snackbar}>
-          <Text style={styles.snackbarText}>{snackbar.message}</Text>
-          {!!snackbar.undoId && (
-            <Pressable
-              accessibilityLabel="Undo last feeding"
-              accessibilityRole="button"
-              onPress={handleUndo}
-              style={({ pressed }) => [styles.snackbarUndo, pressed && styles.snackbarUndoPressed]}
-            >
-              <Text style={styles.snackbarUndoText}>Undo</Text>
-            </Pressable>
-          )}
-        </View>
-      )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -181,6 +229,7 @@ function createStyles(theme: AppTheme) {
       alignItems: "center",
       backgroundColor: c.background,
       flex: 1,
+      paddingBottom: 16,
       padding: 16,
     },
     recentCard: {
@@ -231,6 +280,14 @@ function createStyles(theme: AppTheme) {
       borderRadius: 8,
       height: 20,
       width: "75%",
+    },
+    scroll: {
+      flex: 1,
+      width: "100%",
+    },
+    scrollContent: {
+      alignItems: "center",
+      paddingBottom: 96,
     },
     recentTitle: {
       color: c.text,
@@ -284,6 +341,10 @@ function createStyles(theme: AppTheme) {
       fontFamily: Fonts?.rounded,
       fontSize: 14,
       fontWeight: "800",
+    },
+    safe: {
+      backgroundColor: c.background,
+      flex: 1,
     },
   });
 }
