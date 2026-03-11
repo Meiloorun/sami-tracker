@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, AppState, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Fonts, type AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { deleteFeeding, getFeedingsByDay, type FeedingDisplay } from "@/api/feeding";
@@ -37,6 +38,7 @@ export default function History() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [items, setItems] = useState<FeedingDisplay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -44,8 +46,9 @@ export default function History() {
   const todayKey = useMemo(() => toDayKey(new Date()), []);
   const canGoNext = selectedKey < todayKey;
 
-  const loadDay = useCallback(async (dayKey: string) => {
-    setLoading(true);
+  const loadDay = useCallback(async (dayKey: string, options?: { showLoading?: boolean }) => {
+    const showLoading = options?.showLoading ?? true;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const rows = await getFeedingsByDay(dayKey);
@@ -53,12 +56,43 @@ export default function History() {
     } catch {
       setError("Could not load this day.");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadDay(selectedKey);
+    loadDay(selectedKey, { showLoading: true });
+  }, [loadDay, selectedKey]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDay(selectedKey, { showLoading: false });
+
+      const intervalId = setInterval(() => {
+        loadDay(selectedKey, { showLoading: false });
+      }, 30_000);
+
+      return () => clearInterval(intervalId);
+    }, [loadDay, selectedKey]),
+  );
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        loadDay(selectedKey, { showLoading: false });
+      }
+    });
+
+    return () => sub.remove();
+  }, [loadDay, selectedKey]);
+
+  const onPullRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadDay(selectedKey, { showLoading: false });
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadDay, selectedKey]);
 
   const goPrev = () => {
@@ -142,7 +176,17 @@ export default function History() {
 
           {!!error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <ScrollView style={styles.listScroll} contentContainerStyle={styles.listContent}>
+          <ScrollView
+            style={styles.listScroll}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onPullRefresh}
+                tintColor={theme.colors.primary}
+              />
+            }
+          >
             {items.map((item) => (
               <View key={item.id} style={styles.item}>
                 <View style={styles.itemTop}>
