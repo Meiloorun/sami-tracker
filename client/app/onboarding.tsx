@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-
+import SamiAvatar from "@/components/ui/sami-avatar";
 import OnboardingForm from "@/components/onboarding-form";
 import { identify } from "@/api/auth";
 import { getSession, setSession } from "@/lib/session";
@@ -71,6 +71,7 @@ export default function OnboardingScreen() {
       behavior={Platform.select({ ios: "padding", android: undefined })}
     >
       <View style={styles.container}>
+        <SamiAvatar shape="circle" size={120} ringWidth={3} style={{ transform: [{ translateY: -30}]}} />
         <OnboardingForm loading={loading} error={error} onSubmit={handleSubmit} />
       </View>
     </KeyboardAvoidingView>

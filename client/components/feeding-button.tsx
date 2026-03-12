@@ -14,6 +14,7 @@ import { Fonts, type AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { addFeeding, type FeedingRecord } from "@/api/feeding";
 import HistoryDatePicker from "./history-date-picker";
+import SamiAvatar from "./ui/sami-avatar";
 
 const NOTES_LIMIT = 220;
 const QUICK_ACTIONS = [
@@ -137,7 +138,17 @@ export default function FeedingButton({ onAdded }: Props) {
           <Pressable style={styles.backdrop} onPress={closeForm} />
           <View style={styles.card}>
             <View style={styles.headerRow}>
-              <Text style={styles.title}>Log Feeding</Text>
+              <View style={styles.headerLeft}>
+                <SamiAvatar
+                  accessibilityLabel="Sami avatar"
+                  shape="circle"
+                  source={require("../assets/images/sami-6.png")}
+                  showRing={false}
+                  size={30}
+                  style={styles.headerAvatar}
+                />
+                <Text style={styles.title}>Log Feeding</Text>
+              </View>
               <Pressable
                 accessibilityLabel="Close feeding form"
                 accessibilityRole="button"
@@ -328,6 +339,14 @@ function createStyles(theme: AppTheme) {
       justifyContent: "space-between",
       paddingHorizontal: 16,
       paddingVertical: 12,
+    },
+    headerLeft: {
+      alignItems: "center",
+      flexDirection: "row",
+      gap: 10,
+    },
+    headerAvatar: {
+      flexShrink: 0,
     },
     input: {
       backgroundColor: c.input,

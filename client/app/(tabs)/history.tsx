@@ -5,6 +5,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Fonts, type AppTheme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { deleteFeeding, getFeedingsByDay, type FeedingDisplay } from "@/api/feeding";
+import SamiAvatar from "@/components/ui/sami-avatar";
 import HistoryDatePicker from "../../components/history-date-picker";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -172,7 +173,6 @@ export default function History() {
 
         <View style={styles.listCard}>
           {loading ? <Text style={styles.meta}>Loading feedings...</Text> : null}
-          {!loading && items.length === 0 ? <Text style={styles.meta}>No feedings for this day.</Text> : null}
 
           {!!error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -187,6 +187,20 @@ export default function History() {
               />
             }
           >
+            {!loading && items.length === 0 ? (
+              <View style={styles.emptyState}>
+                <SamiAvatar
+                  shape="rounded"
+                  size={120}
+                  showRing={false}
+                  source={require("../../assets/images/sami-2.png")}
+                  style={styles.emptyAvatar}
+                />
+                <Text style={styles.emptyTitle}>No feedings for this day.</Text>
+                <Text style={styles.emptyMeta}>Try another date or log a new feeding.</Text>
+              </View>
+            ) : null}
+
             {items.map((item) => (
               <View key={item.id} style={styles.item}>
                 <View style={styles.itemTop}>
@@ -280,6 +294,30 @@ function createStyles(theme: AppTheme) {
     },
     disabled: {
       opacity: 0.45,
+    },
+    emptyAvatar: {
+      marginBottom: 12,
+      opacity: 0.95,
+    },
+    emptyMeta: {
+      color: c.textMuted,
+      fontFamily: Fonts?.sans,
+      fontSize: 13,
+      fontWeight: "600",
+      marginTop: 4,
+      textAlign: "center",
+    },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 22,
+    },
+    emptyTitle: {
+      color: c.textSoft,
+      fontFamily: Fonts?.rounded,
+      fontSize: 16,
+      fontWeight: "800",
+      textAlign: "center",
     },
     error: {
       color: c.danger,
