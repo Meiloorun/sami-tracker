@@ -1,4 +1,4 @@
-name: Deploy Web to GitHub Pages
+name: Build Web and Publish to meiloorun.github.io/samitracker
 
 on:
   push:
@@ -10,15 +10,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,9 +21,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,36 +32,38 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Set web base path for Pages
-        run: |
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          if [[ "$REPO_NAME" == *.github.io ]]; then
-            echo "EXPO_PUBLIC_WEB_BASE_PATH=" >> "$GITHUB_ENV"
-          else
-            echo "EXPO_PUBLIC_WEB_BASE_PATH=/$REPO_NAME" >> "$GITHUB_ENV"
-          fi
-
       - name: Export static web app
         env:
+          EXPO_PUBLIC_WEB_BASE_PATH: "/samitracker"
           EXPO_PUBLIC_API_BASE_URL: ${{ vars.EXPO_PUBLIC_API_BASE_URL }}
           EXPO_PUBLIC_API_LOCAL_URL: ""
           EXPO_PUBLIC_API_LOCAL_HEALTH_TIMEOUT_MS: "2500"
           EXPO_PUBLIC_API_DEBUG: "false"
         run: npm run web:export
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Checkout Pages repo
+        uses: actions/checkout@v4
         with:
-          path: client/dist
+          repository: meiloorun/meiloorun.github.io
+          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+          path: pages-repo
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
+      - name: Sync static files into /samitracker
+        working-directory: .
+        run: |
+          rm -rf pages-repo/samitracker
+          mkdir -p pages-repo/samitracker
+          cp -R client/dist/. pages-repo/samitracker/
 
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Commit and push to Pages repo
+        working-directory: ./pages-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add samitracker
+          if git diff --cached --quiet; then
+            echo "No changes to publish."
+            exit 0
+          fi
+          git commit -m "Deploy samitracker from ${GITHUB_REPOSITORY}@${GITHUB_SHA}"
+          git push origin main
