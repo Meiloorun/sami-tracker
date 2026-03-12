@@ -4,7 +4,7 @@ type ApiFetchOptions = {
 
 const REMOTE_BASE_URL = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL) || "http://localhost:3000";
 const LOCAL_BASE_URL = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_LOCAL_URL);
-const HEALTH_TIMEOUT_MS = Number(process.env.EXPO_PUBLIC_API_LOCAL_HEALTH_TIMEOUT_MS || "900");
+const HEALTH_TIMEOUT_MS = Number(process.env.EXPO_PUBLIC_API_LOCAL_HEALTH_TIMEOUT_MS || "2500");
 const DEBUG_API_ROUTING = String(process.env.EXPO_PUBLIC_API_DEBUG || "").toLowerCase() === "true";
 const RESOLVE_TTL_MS = 30_000;
 
@@ -28,14 +28,17 @@ function isLikelyNetworkError(error: unknown): boolean {
 }
 
 async function pingHealth(baseUrl: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<Response>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("health_check_timeout")), HEALTH_TIMEOUT_MS);
+  });
 
   try {
-    const res = await fetch(`${baseUrl}/health`, {
-      method: "GET",
-      signal: controller.signal,
-    });
+    // Promise.race avoids relying on AbortController support in native runtimes.
+    const res = await Promise.race([
+      fetch(`${baseUrl}/health`, { method: "GET" }),
+      timeoutPromise,
+    ]);
     if (DEBUG_API_ROUTING) {
       console.info(`[api] health ${baseUrl}/health -> ${res.status}`);
     }
@@ -46,7 +49,7 @@ async function pingHealth(baseUrl: string): Promise<boolean> {
     }
     return false;
   } finally {
-    clearTimeout(timer);
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 
@@ -79,6 +82,9 @@ export async function apiFetch(
   const route = withLeadingSlash(path);
   const allowNetworkFallback = options?.allowNetworkFallback ?? false;
   const primaryBase = await resolveBaseUrl();
+
+  console.log("LOCAL_BASE_URL", process.env.EXPO_PUBLIC_API_LOCAL_URL);
+  console.log("REMOTE_BASE_URL", process.env.EXPO_PUBLIC_API_BASE_URL);
 
   try {
     if (DEBUG_API_ROUTING) {

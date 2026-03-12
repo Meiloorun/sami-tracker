@@ -28,6 +28,12 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_LOCAL_URL": "http://192.168.50.218:3000",
+        "EXPO_PUBLIC_API_BASE_URL": "https://sami-tracker.onrender.com",
+        "EXPO_PUBLIC_API_LOCAL_HEALTH_TIMEOUT_MS": "2500",
+        "EXPO_PUBLIC_API_DEBUG": "true"
+      },
       "android": {
         "buildType": "apk"
       }
