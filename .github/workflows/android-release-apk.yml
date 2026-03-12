@@ -41,6 +41,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Android project
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ vars.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_API_LOCAL_URL: ${{ vars.EXPO_PUBLIC_API_LOCAL_URL }}
+          EXPO_PUBLIC_API_LOCAL_HEALTH_TIMEOUT_MS: ${{ vars.EXPO_PUBLIC_API_LOCAL_HEALTH_TIMEOUT_MS }}
+          EXPO_PUBLIC_API_DEBUG: "false"
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Patch Android release signing
+        run: node scripts/patch-android-signing.js
+
       - name: Decode signing keystore
         working-directory: client/android/app
         env:
@@ -55,6 +66,10 @@ jobs:
       - name: Create Android local.properties
         working-directory: client/android
         run: echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+
+      - name: Ensure Gradle wrapper is executable
+        working-directory: client/android
+        run: chmod +x gradlew
 
       - name: Build release APK
         working-directory: client/android
