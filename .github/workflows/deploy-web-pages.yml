@@ -2,7 +2,7 @@ name: Build Web and Publish to meiloorun.github.io/samitracker
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "client/**"
       - ".github/workflows/deploy-web-pages.yml"
